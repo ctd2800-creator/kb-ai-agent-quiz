@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>KB AI Agent 모의고사</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap');
+  :root {
+    --bg:#0a0e1a; --surface:#111827; --surface2:#1a2236; --border:#1e3a5f;
+    --accent:#00d4ff; --accent2:#ff6b35; --success:#00e676; --error:#ff1744;
+    --warning:#ffd600; --text:#e8f0fe; --text2:#8bacd0; --text3:#4a6680;
+  }
+  * { margin:0; padding:0; -webkit-box-sizing:border-box; box-sizing:border-box; }
+  html, body { -webkit-text-size-adjust:100%; }
+  body {
+    font-family:'Noto Sans KR',sans-serif;
+    background:var(--bg); color:var(--text);
+    min-height:100vh;
+    display:-webkit-flex; display:flex;
+    -webkit-flex-direction:column; flex-direction:column;
+    -webkit-align-items:center; align-items:center;
+    padding:20px;
+  }
+  .header {
+    width:100%; max-width:900px;
+    display:-webkit-flex; display:flex;
+    -webkit-align-items:center; align-items:center;
+    -webkit-justify-content:space-between; justify-content:space-between;
+    padding:16px 0 20px; border-bottom:1px solid var(--border); margin-bottom:24px;
+  }
+  .logo { display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; gap:10px; }
+  .logo-badge { background:-webkit-linear-gradient(135deg,#ff6b35,#ff9800); background:linear-gradient(135deg,#ff6b35,#ff9800); color:#fff; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; padding:4px 10px; border-radius:4px; letter-spacing:1px; }
+  .logo-text { font-size:15px; font-weight:700; color:var(--text); }
+  .stats-bar { display:-webkit-flex; display:flex; gap:16px; -webkit-align-items:center; align-items:center; }
+  .stat { display:-webkit-flex; display:flex; -webkit-flex-direction:column; flex-direction:column; -webkit-align-items:center; align-items:center; gap:2px; }
+  .stat-val { font-family:'JetBrains Mono',monospace; font-size:17px; font-weight:700; color:var(--accent); }
+  .stat-lbl { font-size:10px; color:var(--text3); letter-spacing:0.5px; text-transform:uppercase; }
+  .stat-sep { width:1px; height:28px; background:var(--border); }
+
+  /* ───── START SCREEN ───── */
+  #startScreen { max-width:900px; width:100%; padding:20px 0; }
+  .start-title { font-size:26px; font-weight:900; text-align:center; margin-bottom:8px; background:-webkit-linear-gradient(135deg,var(--accent),#7b8cff); background:linear-gradient(135deg,var(--accent),#7b8cff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+  .start-sub { color:var(--text2); font-size:13px; text-align:center; margin-bottom:28px; line-height:1.6; }
+  .section-label { margin-bottom:12px; font-size:12px; color:var(--text2); font-weight:700; letter-spacing:0.5px; text-transform:uppercase; }
+
+  /* 프리셋 카드 */
+  .options-grid { display:-webkit-flex; display:flex; -webkit-flex-wrap:wrap; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+  .opt-card {
+    background:var(--surface); border:1.5px solid var(--border);
+    border-radius:12px; padding:14px 10px; cursor:pointer;
+    -webkit-transition:all 0.2s; transition:all 0.2s;
+    text-align:center; -webkit-flex:1; flex:1; min-width:70px;
+    -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;
+    touch-action:manipulation; font-family:'Noto Sans KR',sans-serif;
+    color:var(--text); -webkit-appearance:none; appearance:none; outline:none;
+  }
+  .opt-card:active { opacity:0.7; }
+  .opt-card.selected { border-color:var(--accent); background:rgba(0,212,255,0.1); -webkit-box-shadow:0 0 14px rgba(0,212,255,0.2); box-shadow:0 0 14px rgba(0,212,255,0.2); }
+  .opt-num { font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--accent); margin-bottom:3px; }
+  .opt-label { font-size:11px; color:var(--text2); }
+  .opt-card .num-input-inline {
+    background:var(--surface2); border:1.5px solid var(--border); border-radius:8px;
+    color:var(--text); font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700;
+    padding:5px 8px; width:64px; text-align:center; outline:none; margin-top:4px;
+    -webkit-appearance:none; appearance:none; touch-action:manipulation;
+  }
+  .opt-card .num-input-inline:focus { border-color:var(--accent); }
+
+  /* 범위 지정 */
+  .custom-range-row {
+    display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center;
+    -webkit-flex-wrap:wrap; flex-wrap:wrap; gap:8px;
+    background:var(--surface); border:1.5px solid var(--border);
+    border-radius:12px; padding:12px 16px; margin-bottom:18px;
+  }
+  .custom-range-row.active { border-color:var(--accent); background:rgba(0,212,255,0.06); }
+  .custom-range-row label { font-size:12px; color:var(--text2); font-weight:700; white-space:nowrap; }
+  .range-inputs { display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; gap:6px; -webkit-flex-wrap:wrap; flex-wrap:wrap; }
+  .range-inputs span { color:var(--text3); font-size:12px; }
+  .num-input { background:var(--surface2); border:1.5px solid var(--border); border-radius:8px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:700; padding:7px 8px; width:62px; text-align:center; outline:none; -webkit-appearance:none; appearance:none; }
+  .num-input:focus { border-color:var(--accent); }
+  .range-preview { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent); }
+  .range-error { font-size:12px; color:var(--error); }
+
+  /* ── 문제 선택 그리드 ── */
+  .qselect-header {
+    display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center;
+    -webkit-justify-content:space-between; justify-content:space-between;
+    margin-bottom:10px; -webkit-flex-wrap:wrap; flex-wrap:wrap; gap:8px;
+  }
+  .qselect-count { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--accent); font-weight:700; }
+  .qselect-actions { display:-webkit-flex; display:flex; gap:6px; }
+  .btn-xs {
+    font-family:'Noto Sans KR',sans-serif; font-size:11px; font-weight:700;
+    border:1px solid var(--border); border-radius:6px; padding:5px 10px;
+    background:transparent; color:var(--text2); cursor:pointer;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    -webkit-appearance:none; appearance:none;
+  }
+  .btn-xs:active { opacity:0.7; }
+  .btn-xs.accent { border-color:var(--accent); color:var(--accent); }
+  .btn-xs.danger { border-color:var(--error); color:var(--error); }
+
+  .qgrid {
+    display:-webkit-flex; display:flex; -webkit-flex-wrap:wrap; flex-wrap:wrap;
+    gap:6px; margin-bottom:20px;
+    max-height:220px; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:14px;
+  }
+  .qbtn {
+    font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700;
+    width:40px; height:34px; border-radius:7px;
+    border:1.5px solid var(--border); background:var(--surface2);
+    color:var(--text2); cursor:pointer;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    -webkit-transition:all 0.12s; transition:all 0.12s;
+    -webkit-appearance:none; appearance:none;
+    display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; -webkit-justify-content:center; justify-content:center;
+  }
+  .qbtn:active { opacity:0.6; }
+  .qbtn.on { border-color:var(--accent); background:rgba(0,212,255,0.15); color:var(--accent); }
+
+  .btn-start {
+    width:100%; background:-webkit-linear-gradient(135deg,var(--accent),#7b8cff); background:linear-gradient(135deg,var(--accent),#7b8cff);
+    color:#000; font-family:'Noto Sans KR',sans-serif; font-size:16px; font-weight:700;
+    border:none; border-radius:12px; padding:16px; cursor:pointer;
+    -webkit-transition:all 0.2s; transition:all 0.2s;
+    -webkit-tap-highlight-color:transparent; touch-action:manipulation;
+    -webkit-appearance:none; appearance:none;
+  }
+  .btn-start:active { opacity:0.8; }
+  .btn-start:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* ───── QUIZ SCREEN ───── */
+  #quizScreen { max-width:900px; width:100%; display:none; }
+  .quiz-topbar { display:-webkit-flex; display:flex; -webkit-justify-content:space-between; justify-content:space-between; -webkit-align-items:center; align-items:center; margin-bottom:10px; gap:8px; -webkit-flex-wrap:wrap; flex-wrap:wrap; }
+  .quiz-left { display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center; gap:10px; }
+  .q-counter { font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--accent); font-weight:700; }
+  .q-timer { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text2); }
+  .quiz-right { display:-webkit-flex; display:flex; gap:6px; -webkit-align-items:center; align-items:center; }
+  .btn-sm {
+    font-family:'Noto Sans KR',sans-serif; font-size:12px; font-weight:700;
+    border-radius:7px; padding:7px 11px; cursor:pointer;
+    -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;
+    touch-action:manipulation; -webkit-appearance:none; appearance:none; outline:none;
+  }
+  .btn-home { background:transparent; color:var(--text3); border:1px solid var(--border); }
+  .btn-home:active { opacity:0.7; }
+  .btn-midcheck { background:rgba(255,214,0,0.12); color:var(--warning); border:1px solid rgba(255,214,0,0.3); }
+  .btn-midcheck:active { background:rgba(255,214,0,0.25); }
+
+  .progress-bar { height:4px; background:var(--surface2); border-radius:2px; overflow:hidden; margin-bottom:14px; }
+  .progress-fill { height:100%; background:-webkit-linear-gradient(left,var(--accent),#7b8cff); background:linear-gradient(90deg,var(--accent),#7b8cff); border-radius:2px; -webkit-transition:width 0.4s ease; transition:width 0.4s ease; }
+
+  .q-card { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:22px 22px; margin-bottom:14px; }
+  .q-tags { display:-webkit-flex; display:flex; gap:6px; margin-bottom:12px; -webkit-flex-wrap:wrap; flex-wrap:wrap; }
+  .q-tag { font-size:10px; font-weight:700; letter-spacing:0.8px; text-transform:uppercase; padding:3px 9px; border-radius:4px; background:rgba(0,212,255,0.1); color:var(--accent); border:1px solid rgba(0,212,255,0.2); }
+  .q-tag.multi { background:rgba(255,107,53,0.1); color:var(--accent2); border-color:rgba(255,107,53,0.2); }
+  .q-text { font-size:14px; line-height:1.9; color:var(--text); white-space:pre-wrap; word-break:keep-all; }
+
+  .choices-list { display:-webkit-flex; display:flex; -webkit-flex-direction:column; flex-direction:column; gap:8px; margin-bottom:14px; }
+  .choice-btn {
+    background:var(--surface2); border:1.5px solid var(--border); border-radius:10px;
+    padding:13px 14px; text-align:left; cursor:pointer;
+    -webkit-transition:border-color 0.15s,background 0.15s; transition:border-color 0.15s,background 0.15s;
+    display:-webkit-flex; display:flex; -webkit-align-items:flex-start; align-items:flex-start;
+    gap:10px; color:var(--text); font-family:'Noto Sans KR',sans-serif;
+    font-size:14px; line-height:1.7; width:100%;
+    -webkit-tap-highlight-color:transparent; -webkit-appearance:none; appearance:none;
+    touch-action:manipulation; word-break:keep-all;
+  }
+  .choice-btn:active { opacity:0.75; }
+  .choice-btn.selected { border-color:var(--accent); background:rgba(0,212,255,0.1); }
+  .choice-btn.correct { border-color:var(--success); background:rgba(0,230,118,0.1); color:var(--success); }
+  .choice-btn.wrong { border-color:var(--error); background:rgba(255,23,68,0.1); color:#ff6b6b; }
+  .choice-btn.reveal-correct { border-color:var(--success); background:rgba(0,230,118,0.06); }
+  .choice-label { font-family:'JetBrains Mono',monospace; font-weight:700; font-size:12px; min-width:18px; color:var(--text2); padding-top:2px; -webkit-flex-shrink:0; flex-shrink:0; }
+  .choice-btn.correct .choice-label, .choice-btn.reveal-correct .choice-label { color:var(--success); }
+  .choice-btn.wrong .choice-label { color:var(--error); }
+  .choice-btn.selected .choice-label { color:var(--accent); }
+
+  .feedback-box { margin-top:4px; padding:11px 14px; border-radius:10px; font-size:13px; line-height:1.6; display:none; }
+  .feedback-box.correct-fb { background:rgba(0,230,118,0.08); border:1px solid rgba(0,230,118,0.25); color:var(--success); display:block; }
+  .explain-box { margin-top:10px; padding:13px 15px; border-radius:10px; font-size:13px; line-height:1.7; display:none; background:var(--surface2); border:1px solid var(--border); color:var(--text2); }
+  .explain-box.show { display:block; }
+  .explain-box .explain-title { font-size:11px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:var(--accent); margin-bottom:6px; }
+  .feedback-box.wrong-fb { background:rgba(255,23,68,0.08); border:1px solid rgba(255,23,68,0.25); color:#ff6b6b; display:block; }
+
+  .action-row { display:-webkit-flex; display:flex; gap:8px; -webkit-justify-content:space-between; justify-content:space-between; -webkit-align-items:center; align-items:center; margin-top:12px; }
+  .action-left { display:-webkit-flex; display:flex; gap:8px; }
+  .action-right { display:-webkit-flex; display:flex; gap:8px; }
+  .btn {
+    font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:700;
+    border:none; border-radius:8px; padding:11px 20px; cursor:pointer;
+    -webkit-transition:all 0.2s; transition:all 0.2s;
+    -webkit-tap-highlight-color:transparent; -webkit-user-select:none; user-select:none;
+    touch-action:manipulation; -webkit-appearance:none; appearance:none;
+  }
+  .btn-primary { background:-webkit-linear-gradient(135deg,var(--accent),#7b8cff); background:linear-gradient(135deg,var(--accent),#7b8cff); color:#000; }
+  .btn-primary:active { opacity:0.8; }
+  .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+  .btn-secondary { background:transparent; color:var(--text2); border:1px solid var(--border); }
+  .btn-secondary:active { opacity:0.7; }
+  .btn-prev { background:rgba(0,212,255,0.08); color:var(--accent); border:1px solid rgba(0,212,255,0.3); }
+  .btn-prev:active { background:rgba(0,212,255,0.18); }
+  .btn-prev:disabled { opacity:0.25; cursor:not-allowed; }
+
+  /* ───── MODAL ───── */
+  .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.75); z-index:1000; -webkit-align-items:center; align-items:center; -webkit-justify-content:center; justify-content:center; }
+  .modal-overlay.open { display:-webkit-flex; display:flex; }
+  .modal-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:26px 24px; max-width:440px; width:90%; text-align:center; margin:auto; }
+  .modal-title { font-size:17px; font-weight:900; margin-bottom:8px; color:var(--text); }
+  .modal-sub { font-size:13px; color:var(--text2); line-height:1.6; margin-bottom:18px; }
+  .modal-actions { display:-webkit-flex; display:flex; gap:10px; -webkit-justify-content:center; justify-content:center; }
+  .mid-grid { display:-webkit-flex; display:flex; gap:8px; margin-bottom:18px; }
+  .mid-stat { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px 8px; -webkit-flex:1; flex:1; }
+  .mid-stat-val { font-family:'JetBrains Mono',monospace; font-size:20px; font-weight:700; margin-bottom:3px; }
+  .mid-stat-val.green { color:var(--success); }
+  .mid-stat-val.red { color:var(--error); }
+  .mid-stat-val.orange { color:var(--accent2); }
+  .mid-stat-lbl { font-size:11px; color:var(--text3); }
+
+  /* ───── RESULT SCREEN ───── */
+  #resultScreen { max-width:900px; width:100%; display:none; text-align:center; }
+  .result-score-ring { margin:24px auto 20px; position:relative; width:130px; height:130px; }
+  .result-score-ring svg { width:130px; height:130px; -webkit-transform:rotate(-90deg); transform:rotate(-90deg); }
+  .result-score-ring .ring-bg { fill:none; stroke:var(--surface2); stroke-width:10; }
+  .result-score-ring .ring-fill { fill:none; stroke:var(--accent); stroke-width:10; stroke-linecap:round; -webkit-transition:stroke-dashoffset 0.8s ease; transition:stroke-dashoffset 0.8s ease; }
+  .ring-label { position:absolute; top:50%; left:50%; -webkit-transform:translate(-50%,-50%); transform:translate(-50%,-50%); text-align:center; }
+  .ring-pct { font-family:'JetBrains Mono',monospace; font-size:26px; font-weight:700; color:var(--accent); }
+  .ring-grade { font-size:11px; color:var(--text2); margin-top:2px; }
+  .result-title { font-size:19px; font-weight:900; margin-bottom:6px; color:var(--text); }
+  .result-sub { color:var(--text2); font-size:13px; margin-bottom:20px; line-height:1.5; }
+  .result-grid { display:-webkit-flex; display:flex; gap:8px; margin-bottom:20px; }
+  .result-stat { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 6px; -webkit-flex:1; flex:1; }
+  .result-stat-val { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; margin-bottom:3px; }
+  .result-stat-val.green { color:var(--success); }
+  .result-stat-val.red { color:var(--error); }
+  .result-stat-val.blue { color:var(--accent); }
+  .result-stat-val.orange { color:var(--accent2); }
+  .result-stat-lbl { font-size:10px; color:var(--text3); }
+  .wrong-list { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:18px; text-align:left; max-height:320px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .wrong-list-title { font-size:12px; font-weight:700; color:var(--text2); margin-bottom:10px; letter-spacing:0.5px; text-transform:uppercase; }
+  .wrong-item { display:-webkit-flex; display:flex; -webkit-align-items:flex-start; align-items:flex-start; gap:10px; padding:9px 0; border-bottom:1px solid var(--border); font-size:13px; }
+  .wrong-item:last-child { border-bottom:none; }
+  .wrong-qnum { font-family:'JetBrains Mono',monospace; color:var(--error); font-weight:700; min-width:36px; }
+  .wrong-qtext { color:var(--text2); line-height:1.5; word-break:keep-all; }
+  .result-actions { display:-webkit-flex; display:flex; gap:8px; -webkit-justify-content:center; justify-content:center; -webkit-flex-wrap:wrap; flex-wrap:wrap; }
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:var(--surface2); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span class="logo-badge">KB</span>
+    <span class="logo-text">KB AI Agent 모의고사</span>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-val">300</div><div class="stat-lbl">총 문제</div></div>
+    <div class="stat-sep"></div>
+    <div class="stat"><div class="stat-val">7장</div><div class="stat-lbl">레벨</div></div>
+  </div>
+</div>
+
+<!-- ═══ START ═══ -->
+<div id="startScreen">
+  <div class="start-title">AI Agent 개발 모의고사</div>
+  <div class="start-sub">2026 KB디지털역량진단 · 4지선다 300문제 · 랜덤 출제 · 즉시 해설</div>
+
+  <!-- 프리셋 -->
+  <div class="section-label">빠른 선택</div>
+  <div class="options-grid">
+    <button class="opt-card" id="card10" type="button" onclick="selectPreset(10,'card10')">
+      <div class="opt-num">10</div><div class="opt-label">빠른 테스트</div>
+    </button>
+    <button class="opt-card selected" id="card20" type="button" onclick="selectPreset(20,'card20')">
+      <div class="opt-num">20</div><div class="opt-label">기본</div>
+    </button>
+    <button class="opt-card" id="card97" type="button" onclick="selectPreset(300,'card97')">
+      <div class="opt-num">300</div><div class="opt-label">전체</div>
+    </button>
+    <button class="opt-card" id="cardCustom" type="button" onclick="focusCustomCount()">
+      <div id="customCountDisplay" class="opt-num" style="font-size:14px;line-height:1.4;">직접<br>입력</div>
+      <input class="num-input-inline" id="customCountInput" type="number" min="1" max="300" placeholder="1~300"
+        onclick="event.stopPropagation()" oninput="onCustomCountInput()" onfocus="onCustomCountFocus()">
+    </button>
+  </div>
+
+  <!-- 범위 지정 -->
+  <div class="custom-range-row" id="customRangeRow">
+    <label>범위 지정</label>
+    <div class="range-inputs">
+      <span>Q</span>
+      <input class="num-input" id="rangeFrom" type="number" min="1" max="300" placeholder="1" oninput="onRangeInput()">
+      <span>~</span>
+      <span>Q</span>
+      <input class="num-input" id="rangeTo" type="number" min="1" max="300" placeholder="300" oninput="onRangeInput()">
+      <span id="rangePreview" class="range-preview"></span>
+    </div>
+  </div>
+
+  <!-- 문제 선택 그리드 -->
+  <div class="section-label">문제 직접 선택 <span id="selectModeLabel" style="color:var(--accent);font-size:11px;margin-left:6px;">랜덤 출제 모드</span></div>
+  <div class="qselect-header">
+    <span class="qselect-count" id="qselectCount">선택: 300 / 300</span>
+    <div class="qselect-actions">
+      <button class="btn-xs accent" type="button" onclick="selectAllQ()">전체 선택</button>
+      <button class="btn-xs danger" type="button" onclick="clearAllQ()">전체 해제</button>
+      <button class="btn-xs" type="button" onclick="invertQ()">반전</button>
+    </div>
+  </div>
+  <div class="qgrid" id="qgrid"></div>
+
+  <button class="btn-start" id="btnStart" type="button" onclick="startQuiz()">선택한 문제 시작 →</button>
+</div>
+
+<!-- ═══ QUIZ ═══ -->
+<div id="quizScreen">
+  <div class="quiz-topbar">
+    <div class="quiz-left">
+      <span class="q-counter" id="qCounter">1 / 20</span>
+      <span class="q-timer" id="qTimer">⏱ 00:00</span>
+    </div>
+    <div class="quiz-right">
+      <button class="btn-sm btn-midcheck" type="button" onclick="openMidCheck()">📊 중간채점</button>
+      <button class="btn-sm btn-home" type="button" onclick="openHomeConfirm()">🏠 홈</button>
+    </div>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="q-card">
+    <div class="q-tags" id="qTags"></div>
+    <div class="q-text" id="qText"></div>
+  </div>
+  <div class="choices-list" id="choicesList"></div>
+  <div class="feedback-box" id="feedbackBox"></div>
+  <div class="explain-box" id="explainBox"></div>
+  <div class="action-row">
+    <div class="action-left">
+      <button class="btn btn-prev" id="prevBtn" type="button" onclick="prevQuestion()" disabled="disabled">← 이전</button>
+      <button class="btn btn-secondary" type="button" onclick="skipQuestion()">건너뛰기</button>
+    </div>
+    <div class="action-right">
+      <button class="btn btn-primary" id="submitBtn" type="button" onclick="submitAnswer()" disabled="disabled">제출</button>
+      <button class="btn btn-primary" id="nextBtn" type="button" onclick="nextQuestion()" style="display:none">다음 →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RESULT ═══ -->
+<div id="resultScreen">
+  <div class="result-title" id="resultTitle">시험 완료!</div>
+  <div class="result-sub" id="resultSub"></div>
+  <div class="result-score-ring">
+    <svg viewBox="0 0 130 130">
+      <circle class="ring-bg" cx="65" cy="65" r="54"></circle>
+      <circle class="ring-fill" id="ringFill" cx="65" cy="65" r="54" stroke-dasharray="339.3" stroke-dashoffset="339.3"></circle>
+    </svg>
+    <div class="ring-label">
+      <div class="ring-pct" id="resultPct">0%</div>
+      <div class="ring-grade" id="resultGrade">-</div>
+    </div>
+  </div>
+  <div class="result-grid">
+    <div class="result-stat"><div class="result-stat-val green" id="rCorrect">0</div><div class="result-stat-lbl">정답</div></div>
+    <div class="result-stat"><div class="result-stat-val red" id="rWrong">0</div><div class="result-stat-lbl">오답</div></div>
+    <div class="result-stat"><div class="result-stat-val orange" id="rSkipped">0</div><div class="result-stat-lbl">건너뜀</div></div>
+    <div class="result-stat"><div class="result-stat-val blue" id="rTime">00:00</div><div class="result-stat-lbl">소요시간</div></div>
+  </div>
+  <div class="wrong-list" id="wrongList"></div>
+  <div class="result-actions">
+    <button class="btn btn-secondary" id="btnContinue" type="button" onclick="continueFromResult()" style="display:none">이어서 풀기</button>
+    <button class="btn btn-secondary" type="button" onclick="reviewWrong()">오답 다시 풀기</button>
+    <button class="btn btn-primary" type="button" onclick="goHome()">처음으로</button>
+  </div>
+</div>
+
+<!-- 홈 확인 모달 -->
+<div class="modal-overlay" id="homeModal">
+  <div class="modal-box">
+    <div class="modal-title">⚠️ 홈으로 돌아가기</div>
+    <div class="modal-sub">현재 풀이 진행 상황이 모두 사라집니다.<br>정말 홈으로 돌아가시겠습니까?</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" onclick="closeModal('homeModal')">계속 풀기</button>
+      <button class="btn btn-primary" type="button" onclick="confirmGoHome()">홈으로</button>
+    </div>
+  </div>
+</div>
+
+<!-- 중간채점 모달 -->
+<div class="modal-overlay" id="midModal">
+  <div class="modal-box">
+    <div class="modal-title">📊 중간 채점</div>
+    <div class="modal-sub" id="midSubText"></div>
+    <div class="mid-grid" id="midGrid"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" type="button" onclick="closeModal('midModal')">계속 풀기</button>
+      <button class="btn btn-primary" type="button" onclick="finishFromMid()">결과 보기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var ALL_QUESTIONS = [
+  {"id": 1, "text": "이 교재에서 AI Agent를 한 문장으로 가장 잘 설명한 것은?", "choices": ["규칙을 사람이 코드로 전부 적은 전통적 프로그램", "LLM을 두뇌로 두고 계획·도구·기억을 결합해 목표를 수행하는 시스템", "레이블이 있는 정형 데이터로 점수를 매기는 판별 모델", "화면 클릭을 그대로 녹화해 반복하는 자동화 스크립트"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. Agent는 학습 알고리즘의 한 종류가 아니라, LLM에 계획·도구·기억을 붙인 응용 시스템입니다."},
+  {"id": 2, "text": "교재를 관통하는 러닝 케이스로 제시된 시스템은?", "choices": ["보험 손해사정 이미지 분류기", "증권사 리서치 어시스턴트", "은행 창구 번호표 발권기", "카드 가맹점 정산 배치"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 애널리스트 요청을 받아 사내 리서치·공시·시세를 조사하고 리스크 요약 초안을 쓰는 Agent가 러닝 케이스입니다."},
+  {"id": 3, "text": "하네스(harness)에 해당하는 설명은?", "choices": ["벡터 데이터베이스의 인덱스 알고리즘 하나", "토큰을 글자로 나누는 전처리기", "LLM 파라미터를 처음부터 다시 학습하는 과정", "모델을 감싸 작동하는 Agent로 만드는 프롬프트·검색·도구·기억·제어·가드레일 구조"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 하네스 엔지니어링은 그 둘레 구조를 설계·조립하는 일이며, 챕터 2부터 7이 그 과정입니다."},
+  {"id": 4, "text": "Context Engineering과 하네스의 관계는?", "choices": ["Context Engineering은 모델 가중치를 직접 수정한다", "둘은 같은 말의 다른 번역이다", "Context Engineering은 컨텍스트 윈도우라는 입력 계층이고, 하네스는 제어·도구·가드레일까지 포함한다", "하네스는 프롬프트만 가리키고 Context Engineering은 파인튜닝이다"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 컨텍스트에 무엇을 넣을지가 Context Engineering이고, 하네스는 그보다 넓은 둘레 구조입니다."},
+  {"id": 5, "text": "전통적 프로그래밍과 머신러닝의 입력 차이를 맞게 고른 것은?", "choices": ["전통적 프로그래밍은 데이터와 정답, 머신러닝은 규칙과 데이터", "둘 다 사람이 규칙을 코드로 적는다", "전통적 프로그래밍은 규칙과 데이터, 머신러닝은 데이터와 정답(레이블)", "머신러닝은 규칙을 출력하지 않고 이미지만 생성한다"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 머신러닝은 사람이 규칙을 적는 대신 사례에서 규칙(모델)을 학습합니다."},
+  {"id": 6, "text": "신용평가 스코어링과 이상거래탐지(FDS)가 대표하는 단계는?", "choices": ["머신러닝(판별형)", "멀티모달 LLM", "Multi-Agent 오케스트레이션", "생성형 AI"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 정형 데이터를 분류·점수화하는 영역은 오래전부터 머신러닝으로 다뤄 온 금융 AI입니다."},
+  {"id": 7, "text": "딥러닝이 머신러닝과 구별되는 핵심은?", "choices": ["텍스트 생성만 가능하다", "레이블 없이 회계 분개를 확정한다", "사람이 특징(feature)을 고르지 않아도 신경망이 특징을 추출한다", "항상 규칙을 if-else로만 표현한다"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 피처 엔지니어링 부담을 줄이고 이미지·음성·자연어 같은 비정형 데이터에서 성능이 올랐습니다. OCR, STT가 예시입니다."},
+  {"id": 8, "text": "판별형 AI와 생성형 AI의 핵심 질문을 맞게 짝지은 것은?", "choices": ["생성형은 점수만 출력하고 문장은 만들지 못한다", "판별형은 '다음에 올 것은?', 생성형은 '이것은 무엇인가?'", "둘 다 '레이블은 몇 점인가?'만 묻는다", "판별형은 '이것은 무엇인가?', 생성형은 '이것을 만들어 달라'"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 판별형은 분류·점수, 생성형은 문장·이미지·코드 같은 새 산출물을 만듭니다."},
+  {"id": 9, "text": "LLM을 '대규모'라고 부르는 기준으로 교재가 강조한 것은?", "choices": ["파라미터 수가 정확히 100억 개를 넘으면 LLM이다", "학습 데이터 규모와 파라미터 수가 매우 크다는 질적 구분이며, 고정된 숫자 기준선은 없다", "한국어만 학습한 모델을 말한다", "오픈소스 가중치만 LLM으로 부른다"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 과거에 LLM이던 규모가 지금은 작은 모델로 분류되기도 하므로 정량 컷오프는 없다고 설명합니다."},
+  {"id": 10, "text": "LLM이 문장을 만드는 기본 방식은?", "choices": ["앞선 문맥을 보고 다음 토큰의 확률을 예측해 이어 붙인다", "규칙을 역컴파일한다", "모든 가능한 문장을 사전 저장해 둔다", "데이터베이스에서 정답 문장을 조회한다"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 유창한 답과 사실의 정확성은 별개입니다. '대한민국의 수도는' 다음으로 '서울' 확률이 높은 식의 예측입니다."},
+  {"id": 11, "text": "순수 LLM만으로 부족한 이유로 교재가 든 예는?", "choices": ["한국어를 처리하지 못한다", "온도를 조절할 수 없다", "문법 검사가 불가능하다", "실시간 시세 조회나 사내 시스템 접속은 모델 바깥의 도구·권한이 필요하다"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 질문하면 답하는 수준을 넘어 계획·도구·기억·행동이 붙어야 Agent가 됩니다."},
+  {"id": 12, "text": "AI 발전 화살표를 교재는 어떻게 읽으라고 하는가?", "choices": ["RPA가 LLM을 대체한다", "뒤 기술이 앞 기술을 완전히 대체해 사라지게 한다", "앞 기술을 포함하며 확장하는 흐름이고, Agent는 학습 방법의 한 종류가 아니다", "생성형 AI가 나오면 머신러닝은 폐기한다"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. Agent는 ML·DL 같은 학습법이라기보다 LLM을 활용한 응용 시스템입니다."},
+  {"id": 13, "text": "1990~2000년대 금융 AI의 대표 성격은?", "choices": ["리서치 초안을 생성하는 LLM Agent", "신용평가·FDS 중심의 통계·머신러닝(판별형)", "멀티모달 차트 해석", "MCP 도구 서버"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 금융은 생성형 AI 이전부터 정량 데이터로 AI를 써 온 산업이고, 새로운 점은 '생성'입니다."},
+  {"id": 14, "text": "2010년대 금융 AI 사례로 교재가 묶은 것은?", "choices": ["EU AI Act 고영향 분류만", "온프레미스 sLLM 게이트웨이", "HNSW 인덱스 튜닝", "알고리즘 트레이딩, 로보어드바이저, 챗봇 상담"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 이 시기는 머신러닝·딥러닝의 판별·예측형이 중심입니다."},
+  {"id": 15, "text": "ChatGPT 이후 변화로 교재가 첫째로 든 것은?", "choices": ["망분리가 폐지되었다", "환각이 구조적으로 사라졌다", "모든 모델 학습이 중단되었다", "코드가 아니라 자연어 지시로 현업도 AI를 다루게 되었다"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 데이터 과학자가 아니어도 프롬프트로 요약·초안 같은 작업을 지시할 수 있게 되었습니다."},
+  {"id": 16, "text": "생성형 AI가 금융에서 연 업무 영역으로 가장 알맞은 것은?", "choices": ["네트워크 패킷 필터링", "정형 숫자만 분류하던 일의 완전한 대체", "공시·약관·리서치 같은 비정형 텍스트의 요약·해석·재작성", "창구 현금 시재 실사 자동화만"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 사람이 글로 처리하던 비정형 업무의 장벽이 낮아진 것이 핵심 변화입니다."},
+  {"id": 17, "text": "증권 업권의 우선 도입 영역과 연계 기술로 적절한 것은?", "choices": ["리서치 요약·투자정보·리스크 점검, RAG와 Multi-Agent", "번호표 발권, RPA만", "ATM 현금 예측, 온도 파라미터만", "지점 인테리어 생성, 파인튜닝만"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 은행은 콜센터·사내 검색, 카드·보험은 약관·컴플라이언스와 Guardrail 쪽으로 연결됩니다."},
+  {"id": 18, "text": "금융 도메인에서 환각이 특히 위험한 이유는?", "choices": ["잘못된 정보가 금융 사고로 이어질 수 있어 근거(출처)가 필요하기 때문이다", "모델 파라미터가 즉시 삭제되기 때문이다", "토큰 비용이 0이 되기 때문이다", "답변이 짧아지기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 정확성 외에 망분리, PII, 감사 추적, 설명가능성·책임소재도 일반 IT와 다른 제약입니다."},
+  {"id": 19, "text": "폐쇄망 환경에서 외부 SaaS LLM을 바로 쓰기 어려운 제약에 해당하는 것은?", "choices": ["임베딩 차원이 1로 고정되는 현상", "BM25가 동작하지 않는 현상", "보안·망분리", "온도가 음수가 되는 현상"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 고객 계좌·거래·신용정보를 외부로 보낼 수 없고, 마스킹·비식별이 필요합니다."},
+  {"id": 20, "text": "토큰화(tokenization)를 금융 실무에서 신경 써야 하는 이유는?", "choices": ["토큰화는 벡터 DB에만 존재한다", "한국어·숫자가 잘게 쪼개지면 같은 내용도 토큰 수와 비용이 늘 수 있다", "토큰화 후에는 환각이 불가능하다", "토큰은 항상 한 단어와 정확히 같다"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 비용과 컨텍스트 길이는 글자 수가 아니라 토큰 수에 좌우됩니다."},
+  {"id": 21, "text": "임베딩의 핵심 성질은?", "choices": ["뜻이 가까운 표현은 벡터 공간에서 가깝다", "모든 단어의 벡터가 동일하다", "벡터는 반드시 2차원이다", "임베딩은 키워드가 글자 그대로 같을 때만 의미가 있다"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. Transformer의 어텐션은 '그것'이 '미국 주식'을 가리키듯 문맥 전체를 가중합니다. Transformer는 2017년 구조입니다."},
+  {"id": 22, "text": "파라미터가 대략 10B 이하인 모델을 교재는 어떻게 위치시키는가?", "choices": ["경량·sLLM. 빠르고 저렴하며 자체 운영이 쉽지만 복잡한 추론은 약할 수 있다", "파인튜닝이 금지된 모델", "지식 컷오프가 없는 모델", "항상 상용 API보다 추론이 뛰어나다"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 중형은 성능·비용 균형, 수천억 이상은 초대형으로 두는 경향적 구분입니다."},
+  {"id": 23, "text": "학습(Training)과 추론(Inference)의 구분은?", "choices": ["둘 다 가중치를 매번 초기화한다", "추론은 GPU가 필요 없고 학습만 토큰을 쓴다", "학습은 호출마다 토큰 과금, 추론은 한 번만 한다", "학습은 파라미터를 만드는 사전학습·정렬이고, 추론은 완성된 모델로 답을 생성하는 사용 단계다"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 우리가 프롬프트를 넣어 쓰는 단계는 추론이며 호출마다 비용이 납니다."},
+  {"id": 24, "text": "Base 모델의 전형적인 행동은?", "choices": ["도구를 직접 실행한다", "항상 규정 문서를 인용한다", "지시를 따르는 개념이 약해 질문을 답 대신 이어 쓸 수 있다", "RLHF가 끝난 챗 모델과 동일하다"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. Instruction Tuning(SFT)과 RLHF 같은 정렬을 거친 것이 Instruct/Chat 모델입니다."},
+  {"id": 25, "text": "정렬(Alignment)에 대한 설명으로 맞는 것은?", "choices": ["모델을 더 많이 암기시켜 환각을 제거한다", "지시를 따르고 더 안전하게 답하도록 다듬지만, 환각·편향 같은 한계는 없애지 못한다", "지식 컷오프를 오늘 날짜로 당긴다", "망분리 환경을 자동으로 구성한다"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 업무에 바로 쓸 오픈소스 모델은 Instruct/Chat 버전을 고르고, Base는 추가 파인튜닝의 출발점에 가깝습니다."},
+  {"id": 26, "text": "약관 해석처럼 재현성이 중요한 업무의 temperature로 적절한 범위는?", "choices": ["항상 1.5 이상", "호출마다 무작위로 2~5", "온도는 출력에 영향이 없다", "0~0.3 근처의 낮은 값"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 낮은 온도는 보수적·일관적이고, 0.7~1.0 이상은 다양하지만 흔들립니다."},
+  {"id": 27, "text": "멀티모달 LLM이 금융 문서에서 필요한 이유는?", "choices": ["모든 PDF가 XBRL로 자동 변환되기 때문이다", "이미지는 토큰을 소비하지 않기 때문이다", "본문 문장만으로 재무제표 표·차트·스캔본의 의미가 보존되기 때문이다", "표의 행·열, 차트의 축, 스캔 이미지는 텍스트 추출만으로는 구조가 무너지거나 비기 때문이다"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 영업이익률 같은 판단 근거는 문장보다 표·차트에 있는 경우가 많습니다. DART의 HTML·XBRL이 있으면 그 구조 데이터를 쓰는 편이 낫습니다."},
+  {"id": 28, "text": "컨텍스트 윈도우 제한이 만드는 문제는?", "choices": ["지식 컷오프가 없어진다", "모델이 무한히 긴 약관 전문을 한 번에 모두 본다", "한 번에 처리할 토큰 수에 상한이 있어 긴 문서를 통째로 넣기 어렵다", "토큰 비용이 사라진다"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 보완은 RAG와 Context Engineering이며 챕터 3·5에서 다룹니다."},
+  {"id": 29, "text": "지식 컷오프(knowledge cutoff)의 의미는?", "choices": ["학습 시점 이후의 사실은 파라미터 안에 없다", "모델이 실시간 시세를 항상 알고 있다", "사내 규정은 사전학습에 자동 포함된다", "파인튜닝하면 초 단위 시세가 가중치에 들어온다"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 최신·내부 지식은 RAG나 Tool Use로 채웁니다. 파인튜닝은 최신 지식 저장소로 비효율적입니다."},
+  {"id": 30, "text": "환각을 교재가 구조적으로 보는 이유는?", "choices": ["그럴듯한 다음 토큰을 생성할 뿐 사실 조회로 답하지 않기 때문이다", "온도가 0이면 외부 사실을 증명하기 때문이다", "정렬이 끝나면 발생하지 않기 때문이다", "모델이 정답 DB를 조회하기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 없는 우대조항을 상담 봇이 만들어 내는 식의 불완전판매 위험이 예시입니다. 보완은 RAG, 인용, 프롬프트, Guardrail입니다."},
+  {"id": 31, "text": "비결정성이 감사에 주는 어려움은?", "choices": ["모델 버전을 고정하면 시세까지 고정된다", "temperature와 무관하다", "같은 입력도 설정·샘플링에 따라 답이 달라 재현이 어렵다", "항상 바이트 단위로 같은 로그가 남는다"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 낮은 temperature, 모델 버전 고정, 프롬프트·검색·도구 호출 로그 보존으로 보완합니다."},
+  {"id": 32, "text": "토큰 비용·지연의 보완으로 교재가 연결한 기법은?", "choices": ["컨텍스트를 무제한으로 누적", "캐싱, 모델 라우팅, 압축", "HNSW를 끄고 Flat만 사용", "모든 호출을 최대 모델로 고정"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 긴 입력, 긴 대화, 긴 출력, Agent의 반복 호출이 비용을 키웁니다. 해당 주제는 챕터 6입니다."},
+  {"id": 33, "text": "Context Engineering과 Fine-tuning이 바꾸는 대상은?", "choices": ["둘 다 가중치만 바꾼다", "Context Engineering은 입력 컨텍스트, Fine-tuning은 모델 가중치", "Context Engineering은 GPU 드라이버, Fine-tuning은 망분리 정책", "둘 다 벡터 인덱스만 바꾼다"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. Prompting과 RAG는 모델을 그대로 두고 컨텍스트를 설계하는 쪽에 속합니다."},
+  {"id": 34, "text": "금융권에서 RAG가 파인튜닝보다 유리한 점으로 교재가 든 것은?", "choices": ["한 번 학습하면 시세가 영구히 맞다", "검색 없이 주문을 실행한다", "감사 로그가 필요 없어진다", "출처 제시, 문서만 갱신하면 되는 최신성, 민감 문서를 가중치에 넣지 않는 점"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 빠르게 바뀌는 시세·규정·신상품은 RAG나 Tool Use가 맞고, 파인튜닝은 형식·말투·특정 작업 방식에 강합니다."},
+  {"id": 35, "text": "Fine-tuning의 단점으로 적절하지 않은 것은?", "choices": ["과적합 위험이 있다", "문서만 교체하면 지식이 즉시 최신이 된다", "학습 데이터와 재학습 비용이 크다", "반영 내용이 학습 시점에 묶인다"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 문서 교체만으로 최신을 유지하는 쪽은 RAG입니다. 파인튜닝은 그 목적이 아닙니다."},
+  {"id": 36, "text": "RPA의 강점과 한계로 맞는 것은?", "choices": ["항상 사람 승인 없이 주문을 낸다", "비정형 판단을 잘하고 절차는 매번 바꾼다", "정해진 절차를 예측 가능하게 반복하지만 규칙 밖·비정형에는 약하다", "LLM 없이 공시 의미를 추론한다"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 정형 보고서 취합, 시스템 간 데이터 이관이 금융 예시입니다."},
+  {"id": 37, "text": "전통적 규칙형 챗봇과 Agent의 차이는?", "choices": ["챗봇은 목표를 위해 도구와 계획을 스스로 바꾼다", "챗봇은 시나리오·FAQ에 강하고 설계 밖 질문·다단계 수행에 약하다. Agent는 절차를 상황에 맞게 만든다", "둘은 감사 추적이 동일하게 불가능하다", "Agent는 도구를 호출하지 못한다"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. Agent의 네 요소는 Planning, Memory, Tool Use, Action입니다."},
+  {"id": 38, "text": "상용 클라우드 API와 자체 호스팅(sLLM)을 고를 때 데이터 위치 차이는?", "choices": ["상용 API는 데이터가 외부로 나가고, 자체 호스팅은 내부에 둘 수 있어 폐쇄망에 유리하다", "둘 다 폐쇄망에서 인터넷 없이 동일하다", "자체 호스팅은 초기 GPU 비용이 항상 더 낮다", "상용 API는 내부 유지, 자체 호스팅은 외부 전송이 기본이다"], "answer": "A", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 상용 API는 성능·도입 속도가 좋고 운영 부담이 낮지만, 규제 대응은 까다롭습니다. 자체 호스팅은 초기·운영 부담이 큽니다."},
+  {"id": 39, "text": "모델 선택을 교재가 권하는 순서는?", "choices": ["항상 가장 큰 상용 모델을 쓴다", "항상 가장 작은 모델을 쓴다", "벤치마크 점수부터 고른 뒤 데이터 반출을 검토한다", "데이터가 어디까지 나가도 되는지로 후보를 좁힌 뒤 성능·비용·운영을 본다"], "answer": "D", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 성능부터 고르면 검토 단계에서 그 데이터를 보낼 수 없다는 벽에 부딪힙니다."},
+  {"id": 40, "text": "프롬프트 인젝션과 Jailbreak의 초점 차이는?", "choices": ["인젝션은 temperature를 0으로 고정하는 기법이다", "인젝션은 애플리케이션이 심은 통제를, Jailbreak는 모델에 학습된 안전 정렬을 주로 겨냥한다", "둘 다 벡터 인덱스를 삭제하는 공격이다", "Jailbreak는 권한 체계를 강화하는 설정이다"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. LLM은 규칙 토큰과 데이터 토큰의 경계를 접근통제처럼 강제하지 못합니다. 출력에 도구 권한이 붙으면 피해가 커집니다."},
+  {"id": 41, "text": "프롬프트 평가를 '느낌'으로 하면 안 되는 이유는?", "choices": ["LLM이 결정적이라 두 번만 보면 충분하다", "확률적 생성이라 우연히 좋은 답을 품질로 오인할 수 있고, 금융에서는 정확성·재현성·감사 근거가 필요하기 때문이다", "평가 데이터는 규제상 금지된다", "temperature를 올리면 평가가 필요 없다"], "answer": "B", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 고정된 입력 세트와 지표로 측정하고, 데이터셋·모델/프롬프트 버전·실행 조건·결과·승인자·변경 사유를 남깁니다."},
+  {"id": 42, "text": "LLM 한계와 보완 장의 연결로 틀린 것은?", "choices": ["환각 - RAG·인용·프롬프트·Guardrail", "최신성 - Tool Use·RAG - 챕터 3·4", "프롬프트 보안 - 인덱스 Flat 전수 검색만으로 해결 - 챕터 3", "컨텍스트 윈도우 제한 - RAG·Context Engineering - 챕터 3·5"], "answer": "C", "multi": false, "explanation": "챕터 1 LLM·AI 개론. 프롬프트 보안은 Guardrail과 입력 검증이며 챕터 2·7의 주제입니다."},
+  {"id": 43, "text": "프롬프트를 교재가 '질문'이 아니라 '설계'라고 보는 이유는?", "choices": ["프롬프트는 도구 실행 권한 그 자체이기 때문이다", "한 번 쓰면 모든 모델에서 바이트 단위로 같은 출력이 나오기 때문이다", "같은 의도라도 문맥이 달라지면 다음 토큰 확률과 결과가 달라지기 때문이다", "프롬프트는 가중치를 직접 갱신하기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 실제 품질은 문맥뿐 아니라 모델, 검색 근거, 생성 설정, 도구 결과, 후처리·평가까지 함께 봅니다."},
+  {"id": 44, "text": "'삼성전자 어때?'처럼 기간·관점·근거·출력 범위가 없는 요청의 문제는?", "choices": ["컨텍스트 윈도우가 무한히 늘어난다", "모델이 가장 무난한 방향으로 근거 없는 의견을 지어내기 쉽다", "모델이 반드시 최신 공시만 인용한다", "Function Calling이 자동으로 켜진다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 분석 대상, 관점, 근거 자료, 출력 형식을 지정해야 리서치 업무에 쓸 수 있습니다."},
+  {"id": 45, "text": "역할·페르소나 지시를 두어야 하는 위치는?", "choices": ["매 턴 바뀌는 User 메시지 맨 끝", "대화 전체에 일관되게 적용되는 System 등 최상위 지시", "벡터 DB 메타데이터", "주문 원장 테이블"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 리서치 애널리스트와 컴플라이언스 검토역은 같은 공시에도 관점과 표현이 달라집니다."},
+  {"id": 46, "text": "Zero-shot 프롬프팅의 의미는?", "choices": ["예시 문장을 수십 개 붙인다", "검색된 청크를 0개만 허용한다", "temperature를 0으로 고정하는 설정 이름이다", "모범 입출력 예시 없이 지시와 실제 입력만 준다"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. Instruct 모델은 지시 조정 덕분에 예시 없이도 요약·분류를 시도할 수 있습니다. 그래도 사실 정확성은 보장되지 않습니다."},
+  {"id": 47, "text": "Few-shot이 Zero-shot보다 어울리는 상황은?", "choices": ["망분리 정책을 예시로 폐지할 때", "도구 실행을 모델 내부에서 끝낼 때", "출력 형식·판정 기준을 예시로 고정해야 할 때", "실시간 종가를 모델 기억에서 꺼낼 때"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 원하는 문체·JSON 필드·분류 경계를 보여 주면 형식 준수율이 올라가는 경우가 많습니다."},
+  {"id": 48, "text": "Chain-of-Thought(CoT)에 대한 설명으로 맞는 것은?", "choices": ["환각을 구조적으로 제거한다", "중간 추론을 거치게 해 복잡한 문제의 정확도를 도울 수 있지만, 사실 검증을 대신하지는 못한다", "학습 데이터에 없는 오늘 종가를 추론만으로 확정한다", "도구 호출과 같은 말이다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. CoT는 가진 정보로 단계를 펼치는  technique이고, 모르는 사실은 만들어 내지 못합니다."},
+  {"id": 49, "text": "CoT와 ReAct를 한 줄로 구분하면?", "choices": ["CoT는 가진 정보로 추론 단계를 펼치고, ReAct는 생각한 뒤 도구로 행동해 모르는 정보를 가져온다", "ReAct는 예시가 0개인 프롬프트다", "CoT는 반드시 JSON 도구 호출을 실행한다", "둘 다 벡터 검색 알고리즘이다"], "answer": "A", "multi": false, "explanation": "챕터 2 프롬프트. 오늘 삼성전자 종가처럼 지식 컷오프 밖의 값은 시세 API 같은 도구가 필요합니다."},
+  {"id": 50, "text": "프롬프트만으로 ReAct를 구현할 때의 한계는?", "choices": ["도구가 실패해도 무한 재시도가 자동으로 안전하다", "최대 반복 횟수가 규제상 금지된다", "관찰 결과를 다음 단계에 넘길 수 없다", "텍스트로 출력된 행동을 파싱해야 해서 형식 오류에 취약하다"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. 운영 루프에는 최종 답 종료, 관찰 검증, 실패 시 제한 재시도, 최대 반복 후 사람 인계가 필요합니다."},
+  {"id": 51, "text": "System 메시지와 User 메시지의 역할로 적절한 것은?", "choices": ["System은 도구 실행 결과만 담는다", "둘을 한 문자열로 섞어야 경계가 강제된다", "System은 일관된 규칙·정체성, User는 이번 요청과 자료", "User가 항상 규칙을 덮어쓰는 것이 안전 설계다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 모델은 역할 정보를 어느 정도 따르지만, 그 경계를 접근통제처럼 보장하지는 못합니다."},
+  {"id": 52, "text": "출력 형식 제어가 금융 시스템에서 중요한 이유는?", "choices": ["형식 지시는 Jailbreak를 원천 차단하기 때문이다", "사람이 읽는 산문만 허용해야 파싱이 쉽기 때문이다", "JSON처럼 정해진 스키마가 아니면 다운스트림 시스템이 응답을 안정적으로 처리하기 어렵기 때문이다", "형식을 지정하면 시세가 가중치에 저장되기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 필드, 단위, 없는 값은 만들지 말라는 제약, 인용 형식을 함께 지정합니다."},
+  {"id": 53, "text": "Context Engineering이 프롬프트 엔지니어링보다 넓은 이유는?", "choices": ["사람이 쓴 지시뿐 아니라 RAG 근거, 대화 메모리, 도구 결과까지 모델에 들어가는 토큰 전체를 설계하기 때문이다", "가중치를 매 요청마다 재학습하기 때문이다", "프롬프트를 쓰지 않기 때문이다", "오직 UI 문구만 다루기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 2 프롬프트. 포함 관계는 프롬프트 ⊂ Context Engineering ⊂ 하네스입니다."},
+  {"id": 54, "text": "컨텍스트를 '예산'으로 봐야 하는 이유는?", "choices": ["토큰은 무료이고 순서는 무관하다", "모든 로그를 매 호출에 넣는 것이 권장된다", "창이 길면 환각이 0이 된다", "길수록 비용·지연이 늘고, 중요한 정보가 중간에 묻히는 lost in the middle이 생길 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. 무엇을 앞에 두고 무엇을 요약·버릴지 정하는 일이 컨텍스트 설계입니다."},
+  {"id": 55, "text": "프롬프트 변경 관리에서 남겨야 할 증적에 포함되는 것은?", "choices": ["temperature를 기록하지 않는 것", "평가 셋을 배포 후에만 만드는 것", "데이터셋, 모델·프롬프트 버전, 실행 조건, 평가 결과, 승인자, 변경 사유", "담당자 개인 메신저 대화만"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 느낌상 좋았다는 말은 내부 변경관리와 사후 설명의 근거가 되지 못합니다."},
+  {"id": 56, "text": "간접 프롬프트 인젝션에 해당하는 상황은?", "choices": ["BM25 가중치만 바꾼다", "사용자가 채팅창에 규칙을 무시하라고 직접 입력한다", "검색된 웹·문서 안에 숨은 지시가 모델의 규칙을 덮으려 한다", "HNSW의 efSearch를 낮춘다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 외부 데이터를 지시가 아니라 참고 자료로 격리하고, 도구 권한과 분리해야 피해가 줄어듭니다."},
+  {"id": 57, "text": "방어의 출발점으로 교재 취지에 맞는 것은?", "choices": ["System 문장만 길면 접근통제가 완성된다", "모델 출력을 신뢰하지 않고 입력 검사, 권한 분리, 고위험 응답 차단을 시스템으로 둔다", "사용자 입력을 System보다 앞에 둔다", "도구 결과를 검증 없이 다시 프롬프트에 넣는다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 모델이 데이터를 지시로 오판해도, 실행 권한이 없으면 피해 범위가 제한됩니다."},
+  {"id": 58, "text": "리서치 요약 프롬프트에 넣기 적절한 제약은?", "choices": ["확실하지 않으면 목표주가를 추정해 채워라", "최신 시세는 기억으로 적어라", "출처는 생략하라", "원문에 없는 주체·날짜·수치는 만들지 마라"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. 없는 사실을 금지하고, 근거가 없으면 모른다고 말하게 하는 편이 금융 프롬프트의 기본입니다."},
+  {"id": 59, "text": "동일 프롬프트의 품질을 비교할 때 함께 고정해야 하는 것은?", "choices": ["벡터 DB의 무작위 삭제", "사용자 이름", "모델 버전과 temperature 등 실행 조건", "평가자의 당일 기분"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 모델이나 샘플링이 바뀌면 프롬프트가 같아도 결과가 달라집니다."},
+  {"id": 60, "text": "페르소나를 '법무·준법 검토역'으로 두면 답이 기우는 방향은?", "choices": ["주문 수량 자동 체결", "투자 매수 의견과 목표주가", "규정 위반 소지와 표현의 적정성", "차트 색상 추천"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 역할은 관점·어조·용어·깊이를 끌어가지만, 그 역할에 맞는 실제 업무 샘플로 평가해야 합니다."},
+  {"id": 61, "text": "긴 CoT가 오늘 종가 질문에 실패하는 이유는?", "choices": ["추론 단계를 늘려도 파라미터에 없는 사실은 생기지 않기 때문이다", "CoT는 도구 실행을 포함한다", "종가는 항상 컨텍스트에 기본 포함된다", "temperature가 낮으면 거래소에 접속한다"], "answer": "A", "multi": false, "explanation": "챕터 2 프롬프트. 사내 문서와 최신 공시도 마찬가지이며, 이때는 검색이나 도구가 필요합니다."},
+  {"id": 62, "text": "출력에 '근거 조항을 대라'고만 쓰고 코드 검증을 안 하면?", "choices": ["인용이 자동으로 정확해진다", "RAG가 필요 없어진다", "감사 로그가 완성된다", "모델이 조항 번호를 지어내도 걸러지지 않을 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. 형식 지시는 필요하지만, 금융에서는 생성 후 검증이 따라와야 합니다."},
+  {"id": 63, "text": "멀티턴에서 이전 대화 전체를 무조건 붙이는 설계의 문제는?", "choices": ["도구 권한이 자동으로 최소가 된다", "평가 셋이 필요 없어진다", "토큰 비용·지연이 늘고 중요한 지시가 묻힐 수 있다", "지식 컷오프가 사라진다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 요약, 사실만 유지, 시스템 지시의 고정 배치가 Context Engineering의 실무 수단입니다."},
+  {"id": 64, "text": "Jailbreak의 예로 가장 가까운 것은?", "choices": ["폐지된 약관을 메타데이터로 제외한다", "소설 속 인물이라 가정하고 거부되어야 할 답을 유도한다", "종목코드를 6자리로 검증한다", "temperature를 0.1로 둔다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 인젝션이 앱 통제를 겨냥한다면, Jailbreak는 모델의 안전 정렬 우회가 초점입니다."},
+  {"id": 65, "text": "좋은 프롬프트 테스트셋의 성격은?", "choices": ["만든 사람이 잘 된다고 아는 질문 두세 개", "대표 업무 입력과 기대 기준이 고정된 세트", "무작위 인터넷 댓글만", "정답이 매번 바뀌어 기록할 수 없는 세트"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 소프트웨어 단위 테스트처럼 같은 기준으로 회귀 측정해야 변경이 개선인지 알 수 있습니다."},
+  {"id": 66, "text": "리서치 어시스턴트 프롬프트에 역할을 넣는 직접 효과는?", "choices": ["답의 관점과 용어가 그 직무에 맞게 기울어 일관성이 높아진다", "PII가 자동 삭제된다", "컨텍스트 한도가 두 배가 된다", "모델이 거래소 주문을 실행한다"], "answer": "A", "multi": false, "explanation": "챕터 2 프롬프트. 역할만으로 사실성이 보장되지는 않으므로 근거 제약이 함께 필요합니다."},
+  {"id": 67, "text": "지시와 데이터를 한 스트림으로 받는 구조가 만드는 취약점은?", "choices": ["시스템 프롬프트가 암호화된다", "도구 스키마가 사라진다", "모델이 데이터 속 문장을 따라야 할 지시로 오판할 수 있다", "SQL 인젝션이 원천적으로 불가능해진다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 그래서 검색 문서는 참고 자료로 구분하고, 권한 있는 행동은 모델 바깥에서 승인합니다."},
+  {"id": 68, "text": "창의적 문구 초안과 규정 해석에 temperature를 같게 두는 판단은?", "choices": ["temperature는 디코딩과 무관하다", "항상 맞다. 업무와 무관하다", "규정·수치는 낮게, 표현 다양성이 목표면 높게 두는 편이 맞다", "금융은 항상 최댓값이다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 사실·근거·규정은 일관성이 우선이고, 브레인스토밍류만 다양성이 필요합니다."},
+  {"id": 69, "text": "프롬프트 개선의 올바른 순서는?", "choices": ["운영에 올린 뒤 느낌으로 고친다", "평가셋으로 기준선을 재고, 바꾼 뒤 같은 지표로 다시 잰다", "예시를 지울수록 항상 좋아진다", "시스템 지시를 사용자 입력 뒤로 옮긴다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 우연히 잘 나온 샘플 몇 개로 배포 판단을 대신하면 안 됩니다."},
+  {"id": 70, "text": "하네스에서 프롬프트가 '가장 안쪽 입력 계층'인 이유는?", "choices": ["프롬프트가 주문 원장을 직접 수정하기 때문이다", "다른 계층이 필요 없기 때문이다", "프롬프트는 평가 계층만 가리키기 때문이다", "이후 검색 근거와 도구 결과도 결국 그 입력 자리를 통해 모델에 전달되기 때문이다"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. 잘 설계된 프롬프트는 이후 계층이 모델과 대화하는 통로이기도 합니다."},
+  {"id": 71, "text": "공시 한 줄 요약 Zero-shot에서 시스템 지시가 하는 일은?", "choices": ["벡터 인덱스를 학습한다", "사용자 질문을 폐기한다", "사실 근거와 간결함 같은 기본 태도를 대화 전체에 건다", "오늘 시세를 계산한다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 사용자 메시지에는 요약 대상 원문과 이번 과제를 둡니다."},
+  {"id": 72, "text": "모델이 도구가 필요한 질문을 CoT만으로 답하게 두면?", "choices": ["감사 추적이 자동 완성된다", "모르는 수치를 자신 있게 지어낼 위험이 있다", "시세 API가 모델 내부에서 호출된다", "지식 컷오프가 해소된다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. ReAct는 생각과 도구 관찰을 반복해 그 공백을 메우는 패턴입니다."},
+  {"id": 73, "text": "최대 반복 횟수에 도달한 Agent의 적절한 처리?", "choices": ["미완성 상태로 중단하고 담당자에게 인계한다", "성공할 때까지 무한히 도구를 호출한다", "마지막 환각을 확정 보고서로 배포한다", "평가 로그를 지운다"], "answer": "A", "multi": false, "explanation": "챕터 2 프롬프트. 무한 루프는 비용과 잘못된 행동을 키웁니다. 종료 조건은 운영 설계의 일부입니다."},
+  {"id": 74, "text": "같은 역할 프롬프트라도 평가할 때 필요한 것은?", "choices": ["역할 이름만 바꾸면 충분하다는 가정", "인터넷에 공개된 아무 상식 퀴즈", "도구 스키마를 비우는 것", "그 직무의 실제 업무 샘플"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. 페르소나 효과는 그 업무에 맞는지로 확인해야 합니다."},
+  {"id": 75, "text": "사용자 입력을 시스템 규칙보다 우선하라고 모델에게 허용하면?", "choices": ["인용 검증이 자동으로 된다", "파인튜닝 비용이 줄어든다", "프롬프트 인젝션이 쉬워진다", "망분리가 강화된다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 우선순위는 시스템에서 선언하되, 선언만으로 강제되지 않으므로 바깥 통제가 필요합니다."},
+  {"id": 76, "text": "출력 스키마에 없는 필드를 모델이 추가했을 때의 올바른 처리?", "choices": ["평가 지표에서 제외한다", "스키마 검증에 실패하면 반려하거나 재생성한다", "항상 그대로 고객에게 보낸다", "필드를 가중치에 학습시킨다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 형식 준수는 프롬프트와 코드 검증이 함께 담당합니다."},
+  {"id": 77, "text": "대화 맥락의 '그 종목'을 풀어 쓰지 않으면?", "choices": ["이후 검색·도구가 대상을 놓치거나 잘못 집을 수 있다", "임베딩 차원이 줄어든다", "BM25 점수가 항상 1이 된다", "사람 승인이 필요 없어진다"], "answer": "A", "multi": false, "explanation": "챕터 2 프롬프트. 지시문에 대상을 명시하거나, 이후 장의 Query Rewriting으로 독립 질문이 되게 바꿉니다."},
+  {"id": 78, "text": "안전 정렬이 되어 있어도 별도의 앱 통제가 필요한 이유는?", "choices": ["정렬이 끝나면 인젝션이 정의상 불가능하기 때문이다", "앱 통제는 속도만 낮출 뿐 효과가 없기 때문이다", "금융 업무에는 안전 정책이 적용되지 않기 때문이다", "정렬은 확률적이고 우회될 수 있으며 앱의 도구체계는 모델이 모르기 때문이다"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. 챕터 7의 가드레일은 이 한계를 시스템 계층으로 다시 막습니다."},
+  {"id": 79, "text": "프롬프트에 긴 약관 전문을 매번 넣는 방식의 단점은?", "choices": ["인용이 자동으로 정확해진다", "모델이 조항을 가중치에 영구 저장한다", "토큰 비용과 창 한도를 빨리 소모하고, 필요한 조항이 묻힐 수 있다", "최신성이 RAG보다 항상 좋다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 필요한 조항만 검색해 넣는 쪽이 RAG이며, 프롬프트는 그 사용 규칙을 정합니다."},
+  {"id": 80, "text": "평가 지표를 바꾸지 않고 프롬프트만 자주 고칠 때 생기는 일은?", "choices": ["도구 스키마가 고정된다", "개선인지 퇴보인지 설명할 근거가 없어진다", "모델이 결정적이 된다", "규제 보고가 자동 생성된다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 변경 사유와 전후 점수를 남겨야 합니다."},
+  {"id": 81, "text": "리서치 보조 시스템 지시로 부적절한 것은?", "choices": ["사실에 근거해 간결히 답하라", "원문에 없는 수치는 만들지 마라", "근거가 없으면 추정 목표주가를 자신 있게 제시하라", "불확실하면 불확실하다고 표시하라"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 추정 강요는 환각과 불완전판매를 부릅니다."},
+  {"id": 82, "text": "Few-shot 예시를 고를 때 주의할 점은?", "choices": ["예시는 많을수록 무조건 무료다", "예시는 시스템 규칙보다 법적으로 우선한다", "예시는 임베딩 학습을 대체한다", "예시에 잘못된 형식이나 사실이 있으면 그 패턴을 따라 할 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 2 프롬프트. 예시도 컨텍스트 예산과 품질 관리 대상입니다."},
+  {"id": 83, "text": "Agent 입력 계층을 먼저 다지는 이유로 맞는 것은?", "choices": ["다른 챕터가 입력과 무관하기 때문이다", "평가가 입력보다 먼저 끝나야 하기 때문이다", "검색과 도구 결과도 결국 모델이 읽는 문맥으로 들어가기 때문이다", "입력 계층이 주문 체결을 대체하기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 2 프롬프트. 챕터 2는 하네스의 입력 계층을 다지는 단계입니다."},
+  {"id": 84, "text": "모델에게 '이전 지시를 무시하라'는 문장을 데이터로 취급하게 하려면?", "choices": ["평가셋을 삭제한다", "시스템 우선순위를 밝히고, 외부 텍스트를 인용 블록으로 격리하며, 민감 행동은 코드로 막는다", "그 문장을 System 앞에 붙인다", "temperature만 올린다"], "answer": "B", "multi": false, "explanation": "챕터 2 프롬프트. 프롬프트 문장만으로는 경계가 강제되지 않습니다."},
+  {"id": 85, "text": "구조화 출력 실패가 반복될 때 먼저 볼 것은?", "choices": ["스키마 설명, 예시, 생성 파라미터, 그리고 실패 샘플이 평가셋에 있는지", "인덱스 nprobe만", "창구 번호표 시스템", "로고 색상"], "answer": "A", "multi": false, "explanation": "챕터 2 프롬프트. 실패 유형을 모아 프롬프트와 검증기를 함께 고칩니다."},
+  {"id": 86, "text": "RAG가 메우려는 LLM의 한계로 교재가 강조한 조합은?", "choices": ["GPU 전력과 폰트 라이선스", "화면 클릭 녹화와 분기 트리", "정렬이 만든 안전 정책의 완전한 삭제", "환각, 지식 컷오프, 유한한 컨텍스트, 사내 문서를 본 적 없음"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 물어보기 전에 관련 문서를 찾아 근거로 답하라가 RAG의 직관입니다. Retrieval, Augmented, Generation의 순서입니다."},
+  {"id": 87, "text": "사내 리서치 보고서를 묻자 모델이 목표주가를 지어내는 반응은?", "choices": ["Tool Use가 필요 없다는 증거", "온도 0의 결정적 조회", "RAG로 막아야 할 위험한 환각", "파인튜닝이 자동으로 성공한 증거"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 모른다고 하거나 일반론으로 얼버무리는 것보다, 그럴듯한 숫자를 만드는 경우가 금융에서 가장 위험합니다."},
+  {"id": 88, "text": "RAG용 임베딩과 LLM 토큰 임베딩의 대상 차이는?", "choices": ["키워드가 하나도 안 겹치면 절대 찾지 못한다", "RAG는 문장·문단 같은 덩어리를 하나의 벡터로 압축한다", "RAG 임베딩은 항상 2차원이다", "뜻이 가까워도 벡터는 반드시 멀다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 그래서 '강제로 주식을 팔리는 경우'로도 '반대매매' 조항을 찾는 의미 검색이 됩니다. 이를 Dense 검색이라고도 합니다."},
+  {"id": 89, "text": "키워드 검색 대비 의미 검색의 강점은?", "choices": ["표기가 달라도 뜻이 가까우면 찾을 수 있다", "종목 코드의 글자 일치를 항상 더 잘한다", "희귀 약어를 절대 놓치지 않는다", "인덱스가 필요 없다"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 반대로 정확한 코드·조문 번호는 Sparse 검색이 강한 경우가 많습니다."},
+  {"id": 90, "text": "Flat(전수 비교) 검색의 특징은?", "choices": ["항상 근사라서 정답을 자주 놓친다", "메모리를 거의 쓰지 않는 압축 방식이다", "군집을 먼저 학습해야 한다", "정확도는 높지만 청크가 많으면 질문마다 비용이 커 실시간 응답이 어렵다"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 그래서 대규모에서는 근사 최근접 이웃(ANN)을 씁니다. 속도와 재현율의 트레이드오프입니다."},
+  {"id": 91, "text": "HNSW를 지도 앱에 비유한 설명으로 맞는 것은?", "choices": ["벡터를 대표값으로 압축해 정밀도를 버린다", "키워드 빈도만 센다", "위층에서 크게 점프한 뒤 아래층에서 정밀하게 찾아간다", "모든 벡터를 매번 다 본다"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 재현율과 속도의 균형이 좋아 pgvector, Milvus의 기본값으로 자주 쓰입니다. 그래프를 메모리에 두어 RAM을 많이 쓰고 대량 갱신에는 약합니다."},
+  {"id": 92, "text": "IVF 인덱스의 원리에 가까운 것은?", "choices": ["BM25 점수를 저장한다", "비슷한 벡터를 군집으로 나누고 관련 군집 일부만 탐색한다", "전국 지도의 다층 그래프를 걷는다", "벡터를 코드북으로 강하게 압축한다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. nprobe로 볼 군집 수를 조절합니다. 데이터가 쌓이면 군집 중심을 다시 학습해야 합니다."},
+  {"id": 93, "text": "PQ(Product Quantization)의 대가는?", "choices": ["메모리는 크게 줄지만 압축 때문에 재현율이 낮아질 수 있다", "정확도가 전수 비교보다 항상 높다", "갱신이 즉시 완전 정확해진다", "차원 수가 1로 고정된다"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 초대규모에서는 IVF와 PQ를 같이 쓰는 경우가 많습니다."},
+  {"id": 94, "text": "사내 약관이 수십만~수백만 청크이고 재현율이 중요하며 갱신이 잦지 않을 때 무난한 기본 인덱스는?", "choices": ["PQ만으로 최대 압축", "인덱스 없이 매번 사람 검색", "BM25를 끄고 무작위 추출", "HNSW"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 대량 추가나 메모리 예산이 빠듯하면 IVF 계열을 검토합니다. efSearch, nprobe, M은 설정으로 빼고 질의셋으로 맞춥니다."},
+  {"id": 95, "text": "이미 PostgreSQL을 운영하고 벡터가 수백만 이하일 때 교재의 단계적 출발점은?", "choices": ["FAISS만 쓰고 권한·백업은 생략한다", "문서를 모델 가중치에 파인튜닝한다", "pgvector로 시작해 한계에서 전용 벡터 DB로 옮긴다", "처음부터 초대규모 Milvus만 허용한다"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 금융에서는 최고 속도보다 백업·권한·감사·장애 대응이 더 중요할 때가 많습니다. FAISS는 빠르지만 영속화·권한을 직접 구현합니다."},
+  {"id": 96, "text": "메타데이터 필터가 금융 RAG에서 청킹만큼 중요한 이유는?", "choices": ["보안 등급은 로그에만 남기면 되기 때문이다", "폐지된 약관이나 다른 상품 조항이 의미상 가까워도 걸러져야 하기 때문이다", "필터를 쓰면 임베딩이 필요 없어지기 때문이다", "발효일은 검색 품질과 무관하기 때문이다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 문서 유형, 발효일, 폐지 여부, 보안 등급을 벡터 검색과 함께 걸어야 합니다. 원문이 있는 벡터 DB는 폐쇄망에 둡니다."},
+  {"id": 97, "text": "청크를 아주 작게 자르면?", "choices": ["검색 정밀도는 오르지만 답에 필요한 맥락이 흩어질 수 있다", "항상 한 페이지의 모든 주제가 한 벡터에 남는다", "오버랩이 금지된다", "파싱 오류가 자동 교정된다"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 크게 자르면 맥락은 풍부하지만 주제가 섞이고 토큰도 많이 듭니다. 대표 질의로 측정해 정합니다."},
+  {"id": 98, "text": "오버랩(overlap)의 목적은?", "choices": ["저장량을 0으로 만든다", "임베딩 모델을 재학습한다", "BM25를 끈다", "청크 경계에서 문장이 잘려 검색에 안 잡히는 일을 줄인다"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 오버랩이 크면 저장량과 중복 검색이 늘어납니다. 황금률은 한 청크가 하나의 완결된 의미 단위가 되게 하는 것입니다."},
+  {"id": 99, "text": "금융 RAG에서 파싱이 첫 관문인 이유는?", "choices": ["머리말과 페이지 번호는 본문 품질과 무관하기 때문이다", "모든 PDF는 텍스트 추출만으로 표 구조가 유지되기 때문이다", "표가 한 줄로 뭉개지면 이후 청킹·검색이 좋아도 엉뚱한 숫자를 답하기 때문이다", "파싱은 검색 이후의 장식 단계이기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 다단 레이아웃을 잘못 읽거나 스캔본을 빈 문서로 두면 정확도 상한이 거기서 정해집니다."},
+  {"id": 100, "text": "DART 사업보고서를 다룰 때 우선할 입력은?", "choices": ["표의 행과 열을 섞어 저장한다", "구조화된 HTML·XBRL이 있으면 그 원천 데이터를 쓴다", "항상 스캔 이미지만 OCR한다", "차트를 버리고 문장만 남긴다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 사내 리서치 PDF나 스캔 약관은 레이아웃 파싱이나 OCR이 불가피합니다. 모든 금융 PDF를 동일하게 보면 안 됩니다."},
+  {"id": 101, "text": "Dense와 BM25가 동시에 필요한 질의의 예는?", "choices": ["삼성전자(005930)의 반대매매 관련 조항", "완전 동의어로만 된 시 구절", "이미지가 없는 빈 페이지", "온도 파라미터 설정"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 005930 같은 식별자는 BM25, 반대매매의 의미는 Dense가 강합니다. 한쪽만 쓰면 일부 질의가 실패합니다."},
+  {"id": 102, "text": "Dense가 BM25보다 항상 우월하다는 말의 문제는?", "choices": ["Dense는 의미를 전혀 못 잡는다", "BM25는 희귀 단어에 가중치를 주지 않는다", "하이브리드는 금융에서 금지된다", "코드·약어·조문 번호처럼 글자 일치가 결정적인 질의에서는 BM25가 더 정확할 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 둘은 우열이 아니라 보완입니다. Hybrid Search가 금융 RAG의 기본 구성에 가깝습니다."},
+  {"id": 103, "text": "Dense 점수와 BM25 점수를 그대로 더하기 어려운 이유는?", "choices": ["BM25는 순위가 없기 때문이다", "정규화는 규제상 금지되기 때문이다", "척도와 분포가 달라 단순 합이 의미가 없기 때문이다", "둘 다 항상 0과 1 사이다"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 정규화 후 가중합 또는 순위만 쓰는 RRF를 씁니다. RRF의 k는 흔히 60입니다."},
+  {"id": 104, "text": "RRF의 한계로 교재가 든 상황은?", "choices": ["식별자 부스팅과 함께 쓸 수 없다", "한쪽 검색에서만 1위인 정확한 코드 매칭 문서가, 양쪽에서 어중간한 문서보다 아래로 밀릴 수 있다", "순위 대신 원점수 단위를 그대로 비교한다", "k가 작을수록 1위와 2위 차이가 사라진다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 종목 코드·조문 번호가 결정적이면 BM25 비중을 높이거나 식별자 우선 규칙을 같이 둡니다."},
+  {"id": 105, "text": "Query Rewriting이 특히 필요한 경우는?", "choices": ["멀티턴에서 '그건?'처럼 대명사에 의존하는 후속 질문", "이미 독립적이고 구체적인 단일 질문만 있을 때 항상", "벡터를 압축할 때", "사람 승인 게이트를 없앨 때"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 앞 대화를 반영해 그 자체로 검색 가능한 질문으로 다시 씁니다. LLM을 한 번 더 호출하는 비용이 있습니다."},
+  {"id": 106, "text": "HyDE에서 가상 답변을 다뤄야 하는 방식은?", "choices": ["가상 답변을 확정 사실로 고객에게 보낸다", "가상 답변으로 파인튜닝을 대체한다", "검색을 건너뛰게 한다", "검색을 돕는 단서로만 쓰고, 그 문장을 근거라고 인용하면 안 된다"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 질문과 문서의 말투 차이가 클 때 가설 문서를 임베딩해 검색하는 기법입니다."},
+  {"id": 107, "text": "Multi-Query를 쓰는 상황은?", "choices": ["검색 비용을 0으로 만들 때", "파싱을 생략할 때", "한 질문에 미수금 처리와 연체이자처럼 갈래가 섞여 있을 때", "단일 종목 코드만 정확히 찾을 때 항상"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 하위 질문으로 나눠 각각 검색한 뒤 RRF 등으로 합칩니다. 호출과 검색 횟수가 늘어 비용이 큽니다."},
+  {"id": 108, "text": "Advanced RAG 기법을 모든 질의에 일괄 적용하지 말아야 하는 이유는?", "choices": ["하이브리드 검색과 동시에 쓸 수 없기 때문이다", "검색 전 LLM 호출로 지연·토큰이 늘므로, 기준선이 약한 유형에만 재보고 채택해야 한다", "기법 자체가 검색 품질을 항상 떨어뜨리기 때문이다", "규제가 질의 재작성을 금지하기 때문이다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 효과는 평가셋으로 확인합니다."},
+  {"id": 109, "text": "RAG 평가를 검색과 생성으로 나누는 이유는?", "choices": ["답이 틀린 이유가 근거를 못 찾은 것인지, 근거는 있는데 모델이 틀린 것인지 고쳐야 할 곳이 다르기 때문이다", "검색 지표만으로 환각이 전부 설명되기 때문이다", "생성 평가는 금융에서 금지되기 때문이다", "정답 청크 라벨이 필요 없기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 질문과 정답 근거 청크 쌍으로 Recall@k 같은 검색 지표를 봅니다."},
+  {"id": 110, "text": "데모에서 고른 질문 10개가 모두 맞은 것을 교재는 무엇에 비유하는가?", "choices": ["감사 대응이 끝난 상태", "재현율 100%의 증명", "파인튜닝 완료", "컴파일이 된 수준이지 테스트를 통과한 것은 아니다"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 품질은 대표 질의 집합에 대한 통계로 말해야 합니다. 실패 사례는 평가셋에 다시 넣습니다."},
+  {"id": 111, "text": "금융 RAG에서 출처가 필수인 이유는?", "choices": ["출처 표기는 편의 기능이라 빠져도 된다", "RAG를 쓰면 출처가 자동으로 정확해지기 때문이다", "검증, 감사, 책임소재를 위해 어느 조항을 보고 답했는지 재구성해야 하기 때문이다", "출처가 있으면 모델이 도구를 실행하기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 근거 청크가 있는 것과, 답에 정확한 출처가 달리고 검증되는 것은 다릅니다. 요구, 생성, 코드 검증의 세 단계가 필요합니다."},
+  {"id": 112, "text": "인용 설계의 첫 겹에 해당하는 것은?", "choices": ["폐지 약관을 우선 검색한다", "검색된 청크에 조·항 같은 출처 식별자를 실어 모델에 넣는다", "모델이 고른 번호를 검증 없이 신뢰한다", "메타데이터를 청크에서 제거한다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 그다음 프롬프트로 표기를 강제하고, 표기가 실제 청크와 맞는지 코드로 확인합니다."},
+  {"id": 113, "text": "Re-ranking의 위치는?", "choices": ["1차 검색으로 후보를 넓게 가져온 뒤 더 정교한 모델로 다시 정렬한다", "파싱 전에 페이지를 삭제한다", "임베딩을 대체해 키워드만 남긴다", "사람 승인 대신 주문을 낸다"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 1차 검색의 재현율을 확보한 다음 상위 정밀도를 올리는 단계입니다."},
+  {"id": 114, "text": "청킹 전에 파싱이 깨져 있으면?", "choices": ["HNSW가 표 구조를 복원한다", "BM25가 행과 열을 다시 맞춘다", "오버랩이 표를 재구성한다", "좋은 임베딩 모델로도 잘못된 숫자 관계가 검색·생성에 전달된다"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 입력이 깨지면 뒤 단계는 깨진 채로 정교해질 뿐입니다."},
+  {"id": 115, "text": "벡터 DB에 원문 텍스트가 함께 저장될 때 운영 요건은?", "choices": ["임베딩만 있으면 원문 유출은 불가능하다", "보안 등급 컬럼은 품질을 떨어뜨려 빼는 것이 원칙이다", "폐쇄망·온프레미스에 두고 권한과 감사 범위 밖으로 나가지 않게 한다", "검색 속도를 위해 공개 버킷에 둔다"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 의미 검색과 접근 통제는 함께 설계합니다."},
+  {"id": 116, "text": "Recall@k가 말하는 것은?", "choices": ["주문 체결 속도", "상위 k개 안에 정답 근거 청크가 들어 있는 비율", "문장의 문법 점수", "모델 파라미터 개수"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 검색이 근거를 못 찾았는데 생성만 고치면 품질이 오르지 않습니다."},
+  {"id": 117, "text": "현행 약관만 검색하려면 메타데이터로 걸 조건에 가까운 것은?", "choices": ["문서 유형이 맞고, 발효일이 오늘 이전이며, 폐지일이 비어 있다", "벡터 거리가 가장 먼 문서", "보안 등급이 사용자보다 높은 문서", "페이지 번호가 짝수인 머리말"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 옛 규정이 가까워 보여도 현행이 아니면 오답 근거가 됩니다."},
+  {"id": 118, "text": "하이브리드 검색의 분업을 맞게 말한 것은?", "choices": ["둘 다 가상 문서만 검색한다", "Dense가 조문 번호를 항상 이긴다", "BM25가 동의어를 항상 이긴다", "정확한 코드·약어는 BM25, 풀어 쓴 의미는 Dense"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 금융 질의는 식별자와 의미 표현이 한 문장에 섞이는 경우가 많습니다."},
+  {"id": 119, "text": "RAG로도 풀기 어려운 요청은?", "choices": ["현행 약관의 특정 조항", "공시에 적힌 배당 기준일", "어느 문서에도 없고 지금 시스템 안에만 있는 실시간 예수금", "어제 발간된 사내 리포트의 투자의견"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 실시간 값과 계산, 시스템 조작은 다음 장의 Tool Use 영역입니다."},
+  {"id": 120, "text": "청크에 조·항 번호를 메타데이터로 남기는 직접 이점은?", "choices": ["파싱을 생략할 수 있다", "검색된 청크의 식별자를 출처 표기에 그대로 쓸 수 있다", "임베딩 차원이 줄어든다", "파인튜닝 없이 주문을 실행한다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 출처 문자열을 모델이 지어내지 않게 식별자를 주는 설계입니다."},
+  {"id": 121, "text": "ANN을 쓰면서 재현율 손실을 무시하면?", "choices": ["근거가 되는 조항을 후보에서 놓쳐 틀린 답으로 이어질 수 있다", "항상 전수 비교와 같은 최근접이 보장된다", "메타데이터 필터가 자동으로 완벽해진다", "토큰 비용이 0이 된다"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 금융 RAG는 근거를 놓치면 안 되는 요구가 강하므로 재현율을 측정해야 합니다."},
+  {"id": 122, "text": "FAISS와 pgvector의 체감 차이는?", "choices": ["둘 다 권한·감사가 기본으로 완전하다", "pgvector는 벡터를 저장할 수 없다", "FAISS는 SQL WHERE로 폐지일을 자동 관리한다", "FAISS는 검색 엔진을 직접 조립하고, pgvector는 기존 DB에 검색과 SQL 필터를 더한다"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. 어떤 제품을 쓰든 HNSW·IVF 트레이드오프를 이해해야 설정을 고릅니다."},
+  {"id": 123, "text": "품질 개선 루프에 해당하는 순서는?", "choices": ["검색과 생성을 하나의 점수에만 섞어 원인을 숨긴다", "문서를 갱신하지 않고 가중치만 믿는다", "실패 사례를 평가셋에 추가하고 파싱·청킹·검색·프롬프트를 반복해서 고친다", "데모 질문만 남기고 실패 로그를 지운다"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 돌아가는 시스템과 믿을 만한 시스템은 다릅니다."},
+  {"id": 124, "text": "머리말·쪽수가 본문에 섞이면?", "choices": ["인용 검증이 필요 없어진다", "청크가 오염되어 검색 결과가 흐려진다", "표 구조가 자동으로 복원된다", "XBRL 태그가 생긴다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 파싱 단계에서 제거·분리해야 합니다."},
+  {"id": 125, "text": "질문 '그거 어떻게 돼?'를 그대로 임베딩하면?", "choices": ["대상이 불명확해 엉뚱한 청크가 걸리기 쉽다", "HyDE 없이 항상 정답 조항이 1위가 된다", "BM25 식별자 매칭이 완벽해진다", "컨텍스트가 절약된다"], "answer": "A", "multi": false, "explanation": "챕터 3 RAG. 짧고 모호한 질문은 Query Rewriting 후보입니다."},
+  {"id": 126, "text": "RAG의 Augmented가 가리키는 일은?", "choices": ["모델 가중치를 추가 학습한다", "주문을 원장에 기록한다", "인덱스를 삭제한다", "찾은 문서로 모델 입력을 보강한다"], "answer": "D", "multi": false, "explanation": "챕터 3 RAG. Generation은 그 보강된 입력을 바탕으로 답을 만드는 단계입니다."},
+  {"id": 127, "text": "코사인 거리가 작다는 것은 pgvector 예시에서?", "choices": ["보안 등급이 더 높다", "키워드가 0번 등장했다", "질문 벡터와 청크 벡터가 더 가깝다", "문서가 폐지되었다"], "answer": "C", "multi": false, "explanation": "챕터 3 RAG. 거리로 정렬해 가까운 청크를 가져오고, WHERE로 현행·권한 조건을 같이 겁니다."},
+  {"id": 128, "text": "리서치 어시스턴트가 텍스트만 추출한 PDF로 영업이익률을 요약하면?", "choices": ["XBRL이 자동 생성된다", "연결재무제표 표 안의 숫자 관계를 잃고 틀린 조합을 만들기 쉽다", "차트 기울기까지 보존된다", "스캔 계약서의 서명을 읽는다"], "answer": "B", "multi": false, "explanation": "챕터 3 RAG. 표·차트·스캔은 파싱 또는 멀티모달 경로가 필요합니다."},
+  {"id": 129, "text": "Tool Use가 RAG로 대체되지 않는 대표적인 요청은?", "choices": ["지금 이 순간의 주가나 계좌 예수금", "어제 발간된 사내 리포트의 문장", "현행 약관 조항의 문구", "공시에 적힌 배당 기준일"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 실시간 값은 문서에 없고, 정확한 계산과 주문 같은 시스템 조작도 모델 바깥에 있습니다."},
+  {"id": 130, "text": "LLM에게 금액 계산을 말로 시키면 안 되는 이유는?", "choices": ["온도 0이면 연산 회로가 켜지기 때문이다", "사칙연산은 사전학습으로 항상 보장되기 때문이다", "계산은 아키텍처상 실시간 조회와 똑같이 불가능하기 때문이다", "계산기가 아니라 그럴듯한 숫자 토큰을 내고, 틀려도 자신 있어 보이기 때문이다"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 실시간 조회는 모델이 닿지 못하는 한계이고, 계산은 가끔 맞지만 신뢰할 수 없는 한계로 구분합니다."},
+  {"id": 131, "text": "Function Calling에서 모델이 하는 일은?", "choices": ["원장에 주문을 기록한다", "벡터 인덱스를 학습한다", "어떤 함수를 어떤 인자로 부르면 좋겠다는 JSON 요청을 낸다", "시세 API를 직접 소켓으로 호출한다"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 실제 호출은 애플리케이션 코드가 합니다. 그 사이에 권한·인자 검증을 넣을 수 있습니다."},
+  {"id": 132, "text": "도구 정의를 '모델이 읽는 API 설명서'라고 할 때 필수 요소는?", "choices": ["담당자의 개인 전화번호", "이름, 하는 일, 파라미터와 그 의미", "사내 네트워크 도면만", "학습 데이터의 전체 문장"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 모델은 도구를 실행해 보며 배우지 못하고 설명만 보고 고릅니다. 설명이 모호하면 엉뚱한 도구를 고르거나 부르지 않습니다."},
+  {"id": 133, "text": "get_quote의 ticker 설명으로 적절한 것은?", "choices": ["6자리 종목코드이며 예시를 함께 적는다", "아무 문자열이나 된다", "회사 별명을 자유 기술한다", "파라미터 설명은 비워 둔다"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 스키마는 안내이지 강제 실행이 아니므로, 호출 직전에 형식을 다시 검사합니다."},
+  {"id": 134, "text": "도구 설계의 출발 전제로 맞는 것은?", "choices": ["사내 시세 서버는 항상 성공한다", "실패는 낡은 값으로 조용히 답하면 된다", "타임아웃은 금융에서 불필요하다", "도구는 언제든 실패할 수 있고 그 실패를 안전하게 다뤄야 한다"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 눈에 보이게 실패하고 멈추는 편이, 실패를 감춘 채 틀린 시세로 답하는 것보다 안전합니다."},
+  {"id": 135, "text": "도구 호출 가드레일을 두는 위치는?", "choices": ["모델 내부의 어텐션 가중치", "프롬프트의 인사말", "실행 전 인자 검증과 실행 후 결과 검증, 실행 중에는 타임아웃·재시도·서킷 브레이커", "실행 후에만 사람 없이 재학습"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 형식 검증, 의미 검증, 권한 검증은 실행 전 층으로 나뉩니다."},
+  {"id": 136, "text": "병렬 호출이 가능한 기준은?", "choices": ["쓰기 주문은 항상 병렬이 더 안전하다", "앞 호출의 결과가 뒤 호출의 입력으로 필요 없다", "모델이 한 턴에 도구를 하나만 제안했다", "모든 금융 도구는 항상 순차여야 한다"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 세 종목 현재가는 병렬로 지연을 줄일 수 있습니다. 계좌에서 손익이 가장 큰 종목의 시세는 순차입니다. 동시 실행은 애플리케이션의 몫입니다."},
+  {"id": 137, "text": "도구를 앱마다 복제할 때의 문제는?", "choices": ["구현이 중복되고 인증·권한이 제각각이 되어 변경과 통제가 어렵다", "표준 프로토콜이 자동으로 생긴다", "감사 추적이 한곳에 모인다", "망 경계를 넘지 않게 된다"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 도구 서버로 분리하고 표준 방식으로 접속하는 해법이 MCP의 동기입니다."},
+  {"id": 138, "text": "MCP에 대한 설명으로 맞는 것은?", "choices": ["ISO가 제정한 결제 메시지 표준이다", "벡터 압축 알고리즘이다", "망분리를 폐지하는 규정이다", "모델 애플리케이션과 도구·데이터 소스를 잇는 개방형 프로토콜이며, 2024년 Anthropic이 공개했다"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. FIX나 ISO 20022 같은 공식 표준은 아니지만 사실상의 연결 규약으로 퍼지고 있습니다. 도구를 한 번 만들면 규약을 따르는 앱에서 재사용할 수 있습니다."},
+  {"id": 139, "text": "망분리 환경에서 Agent 설계가 동시에 답해야 하는 질문은?", "choices": ["temperature를 몇으로 할지 하나", "청크 오버랩만", "모델을 어디에 둘지, 도구가 어느 망의 시스템에 닿는지, 망을 넘는 통신을 어디서 통제·감사할지", "폰트와 로고만"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 상용 API로 사내 데이터를 보내는 것은 데이터 반출입니다. 계좌·주문은 내부망, 외부 시세·공시는 인터넷 너머에 있습니다."},
+  {"id": 140, "text": "리서치 부서 어시스턴트에 계좌 조회·주문을 넣지 않는 이유로 교재가 든 것은?", "choices": ["리서치에는 RAG가 허용되지 않는다", "정보교류차단(차이니즈월) 때문에 리서치는 고객 계좌·주문을 다루지 않는다", "조회 도구는 기술적으로 만들 수 없다", "시세 API가 망분리에서 금지된다"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 계좌·주문은 권한이 있는 자산관리 담당자 어시스턴트의 맥락입니다. 도구 구조는 같아도 정책은 다릅니다."},
+  {"id": 141, "text": "다섯 금융 도구 중 사람 승인 게이트가 필수인 것은?", "choices": ["place_order 같은 쓰기·부작용 도구", "get_quote", "search_research", "공개 시세의 등락률 조회"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 읽기 조회는 권한과 마스킹 아래 자동 실행할 수 있지만, 주문은 승인과 멱등성 키가 필요합니다."},
+  {"id": 142, "text": "get_positions를 get_quote와 같게 '무조건 자동, 마스킹 없음'으로 두면?", "choices": ["차이니즈월이 자동으로 지켜진다", "주문이 더 안전해진다", "토큰 비용이 사라진다", "민감한 보유 종목·평가손익이 권한 없이 노출될 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 민감 읽기 도구는 자동 실행이더라도 권한과 마스킹이 필수입니다."},
+  {"id": 143, "text": "코드 실행 도구가 필요한 이유는?", "choices": ["코드를 프로덕션 원장 서버에서 무제한 실행하기 위해서다", "주문 승인을 건너뛰기 위해서다", "정형 함수로 다 못 덮는 롱테일 계산을, 모델이 짠 코드를 샌드박스에서 실행해 검산하기 위해서다", "LLM은 큰 수의 곱셈을 항상 정확히 하기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 자주 쓰는 수익률 계산은 전용 함수가 낫고, 표준편차·조건부 집계처럼 매번 바뀌는 요청은 코드 인터프리터 패턴이 맞습니다."},
+  {"id": 144, "text": "코드 실행 환경을 프로덕션 망과 붙여 두면 위험한 이유는?", "choices": ["타임아웃이 결과를 더 위험하게 만들기 때문이다", "모델이 생성한 코드가 파일·네트워크·자격증명에 닿을 수 있기 때문이다", "샌드박스는 계산 정확도를 떨어뜨리므로 금지되기 때문이다", "파이썬은 금융 계산을 할 수 없기 때문이다"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 네트워크 차단, 파일 제한, 자원 한도, 비밀 미주입이 샌드박스의 핵심입니다."},
+  {"id": 145, "text": "복합 도구 안에 '계좌 조회 후 최대 손익 종목 시세'를 숨기면?", "choices": ["중간 단계의 검증·권한·게이트와 모델의 경로 변경이 어려워진다", "오케스트레이션이 더 투명해진다", "감사가 쉬워진다", "순차 의존이 사라져 병렬화가 된다"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 도구는 한 가지 일을 하고, 순서를 정하는 오케스트레이션은 밖으로 꺼냅니다."},
+  {"id": 146, "text": "멱등성 키가 주문 도구에 필요한 상황은?", "choices": ["시세 조회가 읽기 전용일 때", "임베딩을 저장할 때", "프롬프트를 평가할 때", "타임아웃 후 재시도가 같은 주문을 두 번 낼 수 있을 때"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 부작용이 있는 쓰기는 재시도와 중복 실행을 구분해야 합니다."},
+  {"id": 147, "text": "스키마의 enum을 벗어난 인자를 모델이 내면?", "choices": ["파인튜닝으로 그 호출을 학습시킨다", "BM25 점수를 올린다", "실행 전 형식 검증에서 막아 도구를 호출하지 않거나 교정 요청을 한다", "그대로 원장에 전달한다"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 형식은 맞아도 존재하지 않는 종목코드이거나 권한이 없는 계좌일 수 있어 의미·권한 검증이 뒤따릅니다."},
+  {"id": 148, "text": "시세 조회가 실패했는데 어제 종가로 답하게 두면?", "choices": ["인용 검증이 완료된 것이다", "사용자는 그것을 현재가로 오인할 수 있어 실패를 숨기는 설계다", "지식 컷오프가 해결된다", "서킷 브레이커의 권장 동작이다"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 실패는 실패로 말하고, 재시도 한도를 넘으면 중단·에스컬레이션합니다."},
+  {"id": 149, "text": "Tool Use를 하네스의 어느 계층으로 보는가?", "choices": ["행동 계층. 모델은 판단하고 실제 상호작용은 도구가 한다", "입력 계층만", "통제 계층의 감사 로그 그 자체", "지식 계층의 청킹"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 챕터 5는 그 위에 계획·기억·복구의 제어 계층을 올립니다."},
+  {"id": 150, "text": "모델이 한 턴에 tool_calls를 여러 개 제안했을 때 애플리케이션이 결정해야 하는 것은?", "choices": ["항상 하나만 실행하고 나머지는 폐기", "제안 자체를 모델 내부 실행으로 되돌림", "모든 호출을 사람 승인 없이 주문으로 변환", "의존성이 없으면 병렬, 있으면 순차로 실행할지"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 모델은 호출을 제안할 뿐 동시 실행을 보장하지 않습니다."},
+  {"id": 151, "text": "DMZ를 거치는 이유와 맞는 설명은?", "choices": ["벡터 차원을 줄이기 위해서다", "파인튜닝 데이터를 공개하기 위해서다", "내부망과 인터넷 사이의 통신을 통제 지점으로 모으기 위해서다", "LLM의 temperature를 낮추기 위해서다"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 망 경계를 넘는 트래픽은 그 지점에서 허용·기록되어야 합니다."},
+  {"id": 152, "text": "검색 도구 search_research와 시세 도구를 한 정책으로 묶으면 안 되는 이유는?", "choices": ["시세는 문서 근거가 필요 없기 때문이다", "데이터 출처, 신선도, 권한이 달라 실패와 인용의 처리도 다르기 때문이다", "둘 다 쓰기 도구이기 때문이다", "리서치 검색은 실시간 원장을 수정하기 때문이다"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 리서치 검색은 RAG 경로, 시세는 실시간 API입니다."},
+  {"id": 153, "text": "인자 검증의 세 층으로 교재가 구분한 흐름에 가까운 것은?", "choices": ["형식, 의미, 권한", "폰트, 색상, 여백", "학습, 배포, 폐기만", "청킹, 오버랩, 파싱"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 6자리 종목코드인지, 존재하는 코드인지, 이 사용자가 봐도 되는지를 나눕니다."},
+  {"id": 154, "text": "서킷 브레이커가 막는 상황은?", "choices": ["정상적인 캐시 적중", "사람 승인 대기", "현행 약관 필터", "장애 난 하위 시스템을 호출마다 계속 두드려 장애와 지연을 키우는 일"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 연속 실패 시 잠시 호출을 멈추고 상위에 실패를 알립니다."},
+  {"id": 155, "text": "읽기와 쓰기를 도구 이름에서부터 나누는 이유는?", "choices": ["쓰기 도구는 스키마가 필요 없기 때문이다", "읽기 도구는 권한이 필요 없기 때문이다", "정책(자동 실행 대 승인)을 도구를 고르는 시점부터 분명히 하기 위해서다", "모델이 이름을 읽지 않기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. place_order는 이름과 설명에서 부작용이 드러나야 합니다."},
+  {"id": 156, "text": "코드 인터프리터 결과를 답에 쓸 때의 원칙은?", "choices": ["샌드박스 밖으로 자격증명을 주입한다", "실행이 성공한 계산 결과를 쓰고, 실패하면 암산으로 메우지 않는다", "코드가 실패하면 모델 암산을 확정 수치로 보낸다", "stdout을 검증 없이 고객 잔고로 기록한다"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 계산 도구의 가치는 검산 가능한 실행에 있습니다."},
+  {"id": 157, "text": "오케스트레이션과 개별 Tool Use의 경계는?", "choices": ["Tool Use는 한 번 한 번을 안전하게 부르는 일이고, 어떤 순서로 부를지는 제어·워크플로우의 몫이다", "오케스트레이션은 스키마 필드의 타입 이름이다", "개별 도구가 전체 계획을 숨겨 담아야 한다", "챕터 4가 계획·기억을 완성한다"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 챕터 4의 루프는 아직 가벼운 while입니다. 계획과 기억은 챕터 5입니다."},
+  {"id": 158, "text": "외부 리서치 API가 느릴 때 사용자에게 낡은 성공 응답을 현재 결과처럼 보여 주면?", "choices": ["멱등성이 보장된다", "인용 검증이 끝난다", "병렬화가 완료된다", "신선도 실패를 숨기는 것이다"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 결과 검증에는 값의 형식뿐 아니라 시각·상태 코드도 포함됩니다."},
+  {"id": 159, "text": "모델이 get_quote 대신 place_order를 제안했을 때 리서치 앱이 할 일은?", "choices": ["스키마가 있으므로 승인은 생략한다", "MCP와 무관하게 인터넷으로 바로 주문한다", "그 도구를 등록하지 않았거나 정책상 거부하고 조회 경로만 허용한다", "제안했으므로 즉시 주문한다"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 허용 도구 목록 자체가 권한 경계입니다."},
+  {"id": 160, "text": "재시도가 안전한 도구의 성격은?", "choices": ["승인 없는 매도", "같은 입력이면 상태가 바뀌지 않는 읽기", "시장가 주문", "이체"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 쓰기는 재시도 전에 멱등 키와 승인 상태가 필요합니다."},
+  {"id": 161, "text": "도구 설명에 '국내 상장 주식만'이라고 적는 효과는?", "choices": ["모델이 지원 범위를 벗어난 호출을 덜 하게 돕는다", "해외 종목 조회가 법적으로 자동 허용된다", "검증 코드를 대체한다", "망분리를 해제한다"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 설명은 안내이고, 범위 밖 요청은 코드가 다시 거절해야 합니다."},
+  {"id": 162, "text": "Function Calling 사이클에서 ④에 가까운 단계는?", "choices": ["모델이 API 서버에 TCP로 접속한다", "사람이 벡터를 수작업 계산한다", "인덱스를 삭제한다", "애플리케이션이 도구 결과를 메시지에 담아 모델에게 돌려준다"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 모델은 그 관찰을 보고 다음 답이나 다음 도구를 정합니다."},
+  {"id": 163, "text": "계좌 원장과 외부 시세를 한 프로세스에서 직접 섞을 때의 문제는?", "choices": ["승인이 자동으로 기록된다", "차이니즈월이 강화된다", "망 경계와 데이터 등급이 무너져 내부 정보가 밖으로 나가기 쉽다", "지연이 항상 0이 된다"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 어느 망에서 출발해 어디에 닿는지를 아키텍처로 나눠야 합니다."},
+  {"id": 164, "text": "롱테일 계산을 전부 신규 API로 만들 때의 단점은?", "choices": ["모델이 코드를 쓸 필요가 없어 정확도가 보장된다", "요청이 들어올 때마다 함수를 개발·배포해야 해서 따라가지 못한다", "샌드박스보다 항상 더 안전하다", "검산이 불가능해진다"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 정형 계산은 API, 가변 집계는 제한된 코드 실행으로 나눕니다."},
+  {"id": 165, "text": "도구 결과가 스키마와 다른 타입으로 오면?", "choices": ["결과 검증에서 걸러 모델에게 사실인 것처럼 넣지 않는다", "문자열을 숫자로 단정하고 보고서에 쓴다", "검증은 인자 단계에서 끝났으므로 무시한다", "사용자에게 현재가라고 단정한다"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 앞뒤 검증은 세트로 둡니다."},
+  {"id": 166, "text": "MCP 도구 서버에 인증을 모으는 이점은?", "choices": ["각 앱이 비밀번호를 소스에 넣어야 더 안전하다", "프로토콜이 없으므로 서버마다 규약을 다르게 해야 한다", "감사 로그를 앱 로컬에만 흩어야 한다", "여러 Agent가 같은 시세·계좌 도구를 써도 권한을 한곳에서 통제할 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 표준이 없으면 서버마다 접속 방식이 다시 파편화됩니다."},
+  {"id": 167, "text": "place_order를 자동 실행으로 둔 리서치 어시스턴트의 문제?", "choices": ["멱등 키가 승인을 대체하므로 허용된다", "MCP에서는 주문이 항상 읽기로 분류된다", "조회·분석이 목적인 시스템에 비가역적 부작용과 정보교류 위반 위험이 생긴다", "읽기 지연만 늘어날 뿐 정책 문제는 없다"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 쓰기 도구는 해당 직무의 권한과 사람 승인 게이트가 있는 워크플로에만 등록합니다."},
+  {"id": 168, "text": "타임아웃이 없는 도구 호출의 위험은?", "choices": ["로그가 짧아진다", "하위 시스템 지연이 Agent 전체를 무한히 붙잡거나 재시도를 쌓는다", "정확도가 자동으로 올라간다", "병렬 호출이 순차로 바뀌어 더 안전해진다"], "answer": "B", "multi": false, "explanation": "챕터 4 Tool Use. 시간 제한, 재시도 횟수, 회로 차단을 함께 둡니다."},
+  {"id": 169, "text": "모델에게 도구 목록을 비우고 시세를 물으면?", "choices": ["파라미터에 없는 가격을 지어낼 가능성이 크다", "거래소에 직접 접속한다", "RAG 청크에서 현재가가 보장된다", "Function Calling이 코드 없이 실행된다"], "answer": "A", "multi": false, "explanation": "챕터 4 Tool Use. 필요한 도구를 허용 목록으로 주고, 결과는 애플리케이션이 채워 줍니다."},
+  {"id": 170, "text": "챕터 4를 한 문장으로 요약하면?", "choices": ["프롬프트만으로 주문을 확정한다", "모든 계산을 다음 토큰 예측에 맡긴다", "도구 실패는 숨기는 것이 고객 경험에 유리하다", "모델에게 도구를 달되 검증·권한·승인·망 경계로 금융 시스템 위에서 움직이게 한다"], "answer": "D", "multi": false, "explanation": "챕터 4 Tool Use. 도구를 부르게 만드는 것보다, 틀리거나 악용되거나 새지 않게 하는 일이 더 어렵습니다."},
+  {"id": 171, "text": "병렬로 보이지만 순차여야 하는 예는?", "choices": ["서로 독립인 두 리서치 검색", "의존성이 없는 두 공개 지표 조회", "보유 종목을 먼저 조회해야 그중 한 종목의 시세를 정할 수 있는 요청", "서로 다른 세 종목의 현재가"], "answer": "C", "multi": false, "explanation": "챕터 4 Tool Use. 기준은 하나, 앞 결과가 뒤 입력인가입니다."},
+  {"id": 172, "text": "챗봇과 Agent를 가르는 실무적 기준으로 교재가 든 것은?", "choices": ["API를 한 번 호출하는 스크립트인가", "목표를 향해 여러 단계를 거치며 중간 결과에 따라 다음 행동을 바꾸는 제어 루프가 있는가", "LLM을 한 번이라도 호출했는가", "화면이 대화형인가"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. Agent는 LLM을 판단 엔진으로 삼아 계획·행동·관찰을 반복하고 도구와 상태를 가진 시스템입니다. 무게중심은 제어 루프입니다."},
+  {"id": 173, "text": "제어 루프의 기본 순서는?", "choices": ["계획, 행동, 관찰, 다음 판단", "배포, 과금, 폐기, 광고", "파싱, 청킹, 파인튜닝, 삭제", "주문, 체결, 정산, 광고"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 종료 조건이 있을 때까지 반복합니다. 반성을 넣으면 관찰 뒤에 되짚는 단계가 추가됩니다."},
+  {"id": 174, "text": "ReAct 패턴의 계획 시점은?", "choices": ["실행 전에 모든 단계를 확정하고 바꾸지 않는다", "사람만 계획을 세우고 모델은 실행하지 않는다", "도구 없이 초안만 쓴다", "미리 전체 계획을 고정하지 않고 매 턴 관찰 후 다음 수를 정한다"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. Plan-and-Execute는 먼저 전체 계획을 세운 뒤 실행하는 쪽입니다."},
+  {"id": 175, "text": "Reflexion·Self-Critique가 더하는 축은?", "choices": ["주문을 자동 체결하는가", "망분리를 해제하는가", "결과를 스스로 되짚어 다음 시도에 반영하는가", "벡터 차원을 줄이는가"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 패턴은 '언제 계획하나'와 '되짚나'의 두 물음으로 나뉩니다."},
+  {"id": 176, "text": "종료 조건 없이 Agent를 배포하면?", "choices": ["기억이 무한해진다", "도구 호출을 반복하며 비용을 태우거나 답을 못 내고 헤맬 수 있다", "항상 최소 토큰으로 끝난다", "규정상 자동 승인된다"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 목표 달성 외에 반복 상한, 비용·시간 상한이 필요합니다."},
+  {"id": 177, "text": "LLM에 통상적 의미의 기억이 없다고 말하는 이유는?", "choices": ["매 호출마다 그 순간 컨텍스트에 담긴 것만 보고, 지난 대화를 스스로 저장하지 않기 때문이다", "컨텍스트 윈도우가 무한하기 때문이다", "파라미터가 모든 사내 대화를 실시간 기록하기 때문이다", "Memory 컴포넌트는 가중치를 매 턴 수정하기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 방금 조회한 실적이나 처음의 제약은 다음 호출 컨텍스트에 우리가 다시 실어 줘야 합니다."},
+  {"id": 178, "text": "lost in the middle이 의미하는 현상은?", "choices": ["첫 토큰만 항상 무시된다", "벡터 검색의 재현율이 1이 된다", "짧은 프롬프트일수록 환각이 늘기만 한다", "정보가 컨텍스트 한가운데 묻히면 모델이 놓치기 쉽다"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 그래서 컨텍스트는 창고가 아니라 배분해야 하는 예산입니다."},
+  {"id": 179, "text": "기억 설계가 동시에 답해야 하는 두 질문은?", "choices": ["주문을 낼지, 광고를 낼지", "인덱스를 끌지, 로그를 지울지", "무엇을 오래 유지할지, 이번 호출의 한정된 예산에 무엇을 담을지", "어떤 GPU를 살지, 어떤 폰트를 쓸지"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 메모리 종류의 선택과 컨텍스트 엔지니어링이 짝입니다."},
+  {"id": 180, "text": "Single-Agent가 종목 20개의 조사·등급·종합 보고서에서 한계를 맞는 이유는?", "choices": ["사람 승인을 그래프에 둘 수 없기 때문이다", "컨텍스트 부담, 역할 혼재, 단계별 통제가 한 프롬프트에 섞이기 때문이다", "도구를 한 번도 부를 수 없기 때문이다", "병렬 조사가 기술적으로 불가능하기 때문이다"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 조사, 리스크 판단, 작성은 필요한 능력·도구·프롬프트가 다릅니다."},
+  {"id": 181, "text": "Multi-Agent로 나누는 발상은?", "choices": ["사람 조직처럼 역할을 나눠 각자가 자기 도구와 기억만 갖게 한다", "모델을 하나만 쓰고 프롬프트를 비운다", "모든 Agent가 같은 주문 권한을 갖는다", "감독자 없이 고객에게 바로 배포한다"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 컨텍스트도 역할별로 분리되고 단계별 권한·검증을 걸기 쉬워집니다."},
+  {"id": 182, "text": "증권사 리스크 브리핑 실습에서 교재가 기본값으로 둔 구조는?", "choices": ["Agent 없이 RPA만", "보고서 Agent가 주문을 직접 실행", "조사 원문을 한 컨텍스트에 전부 누적", "Supervisor가 종목 분석, 리스크, 보고서 Agent를 지휘하는 한 층의 Multi-Agent"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 역할 분담, 컨텍스트 분리, 종목별 병렬 조사, 배포 전 사람 승인이 이유입니다. 금융에서는 통제·감사가 분명한 Supervisor가 기본값입니다."},
+  {"id": 183, "text": "보고서 공유 시스템에 올리기 전에 필요한 게이트는?", "choices": ["temperature를 1로 올리는 것", "로그 삭제", "애널리스트의 검토·승인", "모델의 자체 선언만"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 산출물은 초안이고 사람이 승인한 뒤에만 공유합니다."},
+  {"id": 184, "text": "Agent 실패가 '조용하고 그럴듯한' 이유는?", "choices": ["도구가 실패하면 루프가 반드시 예외로 멈추기 때문이다", "LLM이 잘못된 전제 위에서도 유창한 답을 쓰고, 같은 요청도 다른 경로로 가끔 실패하기 때문이다", "예외와 스택 트레이스가 항상 나기 때문이다", "전통 소프트웨어보다 재현이 쉽기 때문이다"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 한 번의 환각이 다음 행동의 입력이 되어 여러 턴에 걸쳐 증폭될 수 있습니다. 로그에 예외가 없어도 다른 회사 수치로 보고서를 쓸 수 있습니다."},
+  {"id": 185, "text": "전통 소프트웨어 디버깅 전제가 Agent에서 깨지는 지점은?", "choices": ["같은 입력이 같은 실행을 보장하지 않고, 원인이 코드 한 줄이 아니라 문맥과 판단의 연쇄일 수 있다", "중단점을 걸면 모델의 내부 추론이 항상 보인다", "temperature 0은 완벽한 결정성을 보장한다", "어제 실패한 시세 응답을 오늘 그대로 재현할 수 있다"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 재현이 안 되는 버그이므로 당시 메시지, 도구 인자, 관찰, 모델 버전을 트레이스로 남겨야 합니다."},
+  {"id": 186, "text": "트레이스에서 우선 확인해야 하는 것은?", "choices": ["로고 이미지의 해상도", "최종 문장의 감정 점수만", "소스 포매터 설정", "각 턴의 입력 문맥, 고른 도구와 인자, 관찰값, 그다음 판단"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 변수 값이 정상이어도 판단이 틀릴 수 있습니다. 추론 내부는 안 보이므로 넣은 문맥과 나온 행동을 대조합니다."},
+  {"id": 187, "text": "Planner, Executor, Memory, Tool Registry의 관계로 맞는 것은?", "choices": ["Memory가 주문 원장을 직접 수정한다", "Executor가 평가셋을 대체한다", "제어 루프가 이 부품을 돌려 다음 행동을 정하고 상태를 갱신한다", "Tool Registry가 모델 가중치를 학습한다"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 챕터 5는 챕터 4의 while 루프에 계획·기억·반성·종료 판단을 정식으로 넣는 장입니다."},
+  {"id": 188, "text": "Plan-and-Execute가 ReAct보다 어울리는 쪽에 가까운 것은?", "choices": ["무한 재시도가 목적인 작업", "단계가 알려져 있고 감사상 계획서가 먼저 고정되어야 할 때", "매 관찰마다 경로가 크게 바뀌는 탐색", "도구가 전혀 없는 잡담"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 계획이 오래되면 현실이 바뀌어 다시 세워야 할 수도 있습니다. 패턴은 업무에 맞게 고릅니다."},
+  {"id": 189, "text": "Self-Critique만 믿고 도구 재조회를 빼면?", "choices": ["틀린 관찰을 더 그럴듯한 문장으로 정당화할 수 있다", "사실 검증이 완료된다", "트레이스가 필요 없어진다", "사람 승인이 대체된다"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 되짚음은 필요하면 다시 조회·계산하는 행동과 연결되어야 합니다."},
+  {"id": 190, "text": "종목 조사 Agent와 보고서 Agent의 도구를 같게 두면?", "choices": ["최소 권한이 자동으로 지켜진다", "컨텍스트가 더 깨끗해진다", "Supervisor가 필요 없어진다", "작성 역할이 원장·주문 같은 불필요한 권한까지 가질 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 역할마다 도구 목록을 따로 줍니다. 리서치 조사는 조회·검색 중심입니다."},
+  {"id": 191, "text": "Supervisor 구조의 금융 측 장점은?", "choices": ["사람 승인 게이트를 넣을 수 없다", "실패가 항상 예외로 멈춘다", "누가 어떤 하위 작업을 시켰는지 감사 경로가 한곳으로 모인다", "하위 Agent끼리 무제한으로 권한을 넘긴다"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 자유 대화형 멀티 에이전트보다 통제가 분명합니다. 작업 규모가 크지 않으면 한 층이면 충분하다고 실습은 봅니다."},
+  {"id": 192, "text": "맥락 표류(drift)를 줄이는 기억 운용은?", "choices": ["도구 결과를 다음 턴에 전달하지 않는다", "목표, 확정된 사실, 미해결 질문만 구조화해 남기고 장문 로그는 요약하거나 밖으로 뺀다", "모든 토큰을 삭제 없이 누적한다", "시스템 지시를 매 턴 사용자 문장으로 덮어쓴다"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 오래 유지할 것과 이번 창에 실을 것을 나눕니다."},
+  {"id": 193, "text": "디버깅할 때 temperature를 낮추는 이유와 한계는?", "choices": ["흔들림은 줄지만 완벽한 결정성은 아니고, 외부 시세·공시는 그래도 변한다", "0으로 두면 어제와 바이트 단위로 같은 도구 응답이 보장된다", "모델 내부 중단점이 생긴다", "트레이스 저장이 필요 없어진다"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 재현 실험과 당시 기록 보존은 별개입니다."},
+  {"id": 194, "text": "실패 모드를 테스트에 넣어야 하는 예는?", "choices": ["컴파일 에러가 난 단위 테스트만", "네트워크 타임아웃 예외만", "UI 버튼 색상", "도구는 성공했는데 다른 회사 수치가 섞인 그럴듯한 보고서"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 예외가 없는 성공 응답도 업무 실패일 수 있습니다. 최종 문장과 인용된 식별자를 대조합니다."},
+  {"id": 195, "text": "하위 Agent 결과를 Supervisor가 그대로 고객 문서로 내면?", "choices": ["인용 검증이 자동 완료된다", "컨텍스트 예산이 무한해진다", "단계별 검증과 사람 승인을 건너뛴 것이 될 수 있다", "Multi-Agent의 권장 종료다"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 전문 Agent의 출력도 하나의 관찰이며 다음 통제를 통과해야 합니다."},
+  {"id": 196, "text": "제어 계층이 입력·지식·행동 계층과 다른 점은?", "choices": ["모델 호출을 한 번으로 제한하는 규정 이름이다", "그 부품을 어떤 흐름으로 돌리고 언제 멈출지를 정한다", "검색과 도구를 제거한다", "프롬프트를 금지한다"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 챕터 5는 하네스 개념을 가장 깊게 심화하는 장으로, 제어 계층을 다룹니다."},
+  {"id": 197, "text": "관찰 단계를 빼면 루프는 어떻게 되는가?", "choices": ["도구 결과를 보지 않고 다음 계획을 세우게 되어 환각이 이어진다", "ReAct가 완성된다", "Plan-and-Execute의 필수 조건이 충족된다", "Memory가 자동 생성된다"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 행동 뒤의 관찰이 다음 판단의 입력입니다."},
+  {"id": 198, "text": "종목별 조사를 한 Agent가 순차로만 하면?", "choices": ["컨텍스트가 자동으로 분리된다", "사람 승인이 필요 없어진다", "숫자 혼동이 사라진다", "독립 작업을 병렬로 나눌 기회를 잃어 지연이 길어진다"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 독립적인 종목 조사는 나눠 동시에 돌리고, 종합은 그 다음에 합니다."},
+  {"id": 199, "text": "보고서 Agent에게 조사 원문 20개 종목을 전부 넘기면?", "choices": ["Supervisor가 필요 없다", "인용 식별자가 자동으로 맞다", "그 Agent의 컨텍스트 예산이 다시 초과되기 쉽다", "역할 분리가 완성된다"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 필요한 사실과 출처 식별자만 넘기는 계약이 필요합니다."},
+  {"id": 200, "text": "안티패턴으로 가장 가까운 것은?", "choices": ["실패 사례를 평가셋에 넣는다", "종료 조건 없이 모델이 충분하다고 느낄 때까지 도구를 호출하게 둔다", "반복 상한과 비용 상한을 둔다", "역할마다 도구를 나눈다"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 모델의 '충분하다'는 느낌은 종료 조건으로 약합니다."},
+  {"id": 201, "text": "트레이스에 모델 버전을 빼면?", "choices": ["나중에 같은 문맥이라도 왜 그때 그런 판단이 나왔는지 소명하기 어렵다", "재현성이 완전해진다", "개인정보가 자동 마스킹된다", "도구 인자가 필요 없어진다"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 프롬프트 버전, 파라미터, 도구 스키마 버전도 함께입니다. 자세한 배포 관리는 챕터 6입니다."},
+  {"id": 202, "text": "리서치 브리핑 요청을 Single-Agent로 끝까지 처리할 때 감사상 어려운 점은?", "choices": ["도구 호출이 로그에 남기 때문이다", "사람 승인을 그래프에 표현할 수 있기 때문이다", "종목 조사가 독립적이기 때문이다", "조사·판단·작성이 한 덩어리라 어디서 틀어졌는지 단계별로 보기 어렵다"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 역할 분리는 품질뿐 아니라 통제를 위해서도 합니다."},
+  {"id": 203, "text": "Memory에 사용자의 초기 제약('확정본으로 배포하지 말 것')을 안 남기면?", "choices": ["Supervisor가 항상 기억한다", "컨텍스트가 짧아져 더 안전해지기만 한다", "뒤 턴에서 그 제약을 잊고 공유 단계로 진행할 수 있다", "제약이 가중치에 자동 기록된다"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 업무 제약은 오래 유지할 기억에 구조화해 둡니다."},
+  {"id": 204, "text": "다른 반도체 회사 수치로 삼성전자 보고서를 쓴 실패를 감지하려면?", "choices": ["감정 분석 점수만 본다", "문장이 자연스러운지가 아니라 인용 식별자와 도구가 돌려준 종목이 같은지 본다", "예외가 없으면 성공으로 본다", "턴 수가 20이면 성공이다"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 그럴듯한 실패는 내용과 근거 식별자의 대조로 잡습니다."},
+  {"id": 205, "text": "계획 단계를 사람이 볼 수 있게 상태 그래프로 드러내는 이유는 챕터 5 관점에서?", "choices": ["모델 속에만 있는 다음 행동은 감사와 중간 개입이 어렵기 때문이다", "그래프를 쓰면 도구가 필요 없어지기 때문이다", "ReAct가 금지되기 때문이다", "기억 컴포넌트를 제거할 수 있기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 명시적 흐름은 챕터 6에서 상태 그래프로 더 구체화됩니다."},
+  {"id": 206, "text": "하위 Agent가 실패했을 때 Supervisor의 적절한 행동은?", "choices": ["실패 문장을 성공 보고서로 윤문한다", "트레이스를 지운다", "다른 종목 수치로 빈칸을 채운다", "그 관찰을 실패로 기록하고 재시도 한도 또는 사람 인계로 보낸다"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 협업 구조에서도 실패를 숨기지 않는 것이 제어 루프의 원칙입니다."},
+  {"id": 207, "text": "컨텍스트 예산 배분에서 보통 앞에 둘 내용은?", "choices": ["폐기된 도구 오류의 전체 스택", "관계없는 약관 전문", "시스템 규칙, 이번 목표, 반드시 지킬 제약", "오래된 잡담 전문"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 중요한 지시가 가운데 묻히지 않게 배치합니다."},
+  {"id": 208, "text": "ReAct 한 턴의 최소 기록은?", "choices": ["모델 이름 없이 결과 점수만", "생각 또는 판단, 호출한 도구와 인자, 관찰", "최종 문장만", "사용자 IP만"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 이 세 가지가 있어야 경로를 나중에 설명할 수 있습니다."},
+  {"id": 209, "text": "Multi-Agent를 도입하지 않아도 되는 쪽에 가까운 요청은?", "choices": ["도구 한두 번으로 끝나는 단일 조항 조회", "20종목 조사 뒤 등급화와 승인 배포", "역할마다 권한과 프롬프트가 다른 장기 조사", "단계마다 다른 사람 승인이 필요한 업무"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 분리는 컨텍스트·역할·통제가 실제로 갈라질 때 합니다. 작은 요청까지 나누면 조율 비용만 늡니다."},
+  {"id": 210, "text": "자기 비판 결과를 장기 기억에 무조건 사실로 저장하면?", "choices": ["환각이 구조적으로 삭제된다", "도구 재조회가 필요 없어진다", "감사 로그가 대체된다", "틀린 성찰이 다음 세션의 근거처럼 재사용될 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 성찰은 가설이고, 확정 사실은 도구·문서 근거가 있을 때만 남깁니다."},
+  {"id": 211, "text": "챕터 4 루프에 아직 약했던 네 가지는?", "choices": ["온도, Top-p, Top-k, 시드", "이름, 설명, 타입, 예시", "계획, 기억, 되짚음, 명시적 종료 판단", "파싱, 청킹, 임베딩, 인덱싱"], "answer": "C", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 챕터 5가 이 빈칸을 제어 계층으로 채웁니다."},
+  {"id": 212, "text": "분석 Agent의 출력 계약에 꼭 넣을 항목은?", "choices": ["고객 계좌 비밀번호", "주장과 그 근거가 된 도구·문서 식별자", "꾸민 문장만", "목표주가의 확정 선언"], "answer": "B", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 다음 역할이 문장만 받으면 숫자 혼동을 검증할 수 없습니다."},
+  {"id": 213, "text": "같은 트레이스를 재생해도 답이 달라질 수 있는 외부 요인은?", "choices": ["그사이 주가나 공시가 바뀌었다", "메시지 목록을 저장하지 않아서만", "Python 버전만", "CSS 클래스 이름"], "answer": "A", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 모델 비결정성과 세계 상태 변화를 구분해 기록합니다."},
+  {"id": 214, "text": "리스크 Agent가 조사 Agent의 도구를 다시 전부 갖게 하면?", "choices": ["Supervisor 구조의 목적과 일치한다", "컨텍스트가 반드시 줄어든다", "사람 승인이 자동 기록된다", "역할 분리가 약해지고 권한이 다시 넓어진다"], "answer": "D", "multi": false, "explanation": "챕터 5 Agent 아키텍처. 필요한 결과와 식별자만 받고, 추가 조회가 필요하면 그 권한으로 제한해 호출합니다."},
+  {"id": 215, "text": "프레임워크가 필요한 이유로 가장 알맞은 것은?", "choices": ["프롬프트와 도구 스키마를 버전 관리할 필요가 없어진다", "모델이 도구를 직접 실행하게 된다", "모델 호출, 도구 실행, 상태 갱신, 종료를 직접 반복하기보다 검증된 루프와 상태 관리를 재사용하기 위해서다", "프레임워크를 쓰면 금융 규제가 적용되지 않는다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 직접 짠 루프는 학습용으로 좋고, 운영에서는 상태·재시도·중단·관찰을 매번 새로 짜기 어렵습니다."},
+  {"id": 216, "text": "LangChain의 지향에 가까운 것은?", "choices": ["온프레미스 GPU 스케줄러", "프롬프트, 모델 래퍼, 도구, 문서 로더, 벡터스토어를 표준 인터페이스로 이어 붙이는 부품 조립", "순환·승인·체크포인트가 중심인 상태 그래프만", "여러 에이전트의 대화 실험만"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. 비교적 선형적인 체인을 빨리 만들 때 생산성이 높습니다."},
+  {"id": 217, "text": "LangGraph를 금융 예제에 쓰는 이유는?", "choices": ["순환, 조건 분기, 상태 공유, 중단과 재개를 명시적 그래프로 보여 주기 때문이다", "체인은 그래프보다 감사가 항상 쉽기 때문이다", "사람 승인을 표현할 수 없기 때문이다", "상태를 숨겨 모델만 믿게 하기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. LangChain이 한 방향 연결에 가깝다면 LangGraph는 되돌아가고 갈라지고 멈췄다 재개하는 흐름을 다룹니다."},
+  {"id": 218, "text": "AutoGen을 앞의 둘과 다르게 보는 점은?", "choices": ["단일 프롬프트 템플릿만 제공한다", "상태 그래프를 금지한다", "도구 호출을 지원하지 않는다", "여러 에이전트가 대화하며 역할을 나누는 협업에 초점이 있다"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 셋은 경쟁 제품이라기보다 다른 문제를 겨냥합니다. 금융의 승인·감사에는 흐름이 드러나는 그래프가 더 잘 맞는 경우가 많습니다."},
+  {"id": 219, "text": "자유로운 ReAct 루프를 금융 업무에서 그대로 두기 어려운 이유는?", "choices": ["상태 그래프는 분기를 표현하지 못하기 때문이다", "노드는 도구 실행을 금지하기 때문이다", "검증, 실패 시 복귀, 위험 단계의 사람 승인이 코드와 그림에 드러나야 하기 때문이다", "모델이 다음 행동을 정하면 감사가 자동으로 끝나기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 업무를 노드로 나누고 공유 상태를 갱신하며 조건부 엣지로 이동을 명시합니다. 모델의 자율은 노드 안으로 국소화됩니다."},
+  {"id": 220, "text": "상태 그래프의 노드가 하는 일은?", "choices": ["상태를 디스크에 남기지 않아야 한다", "공유 State를 읽고 자기 단계의 결과로 갱신한다", "다른 노드의 메모리를 몰래 덮어쓴다", "항상 같은 다음 노드로만 간다"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. 조건부 엣지는 검증 실패 시 이전 단계로 돌려보내고, 고위험 단계에서는 승인을 기다립니다."},
+  {"id": 221, "text": "Human-in-the-Loop를 금융에서 필수에 가깝게 보는 이유는?", "choices": ["책임 소재를 사람에게 남기고, 비가역적 오판을 실행 전에 막기 위해서다", "모든 조회를 사람이 타이핑하게 하기 위해서다", "감사 추적을 없애기 위해서다", "모델이 환각하지 않게 가중치를 바꾸기 위해서다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 리밸런싱 반영이나 위반 판정은 담당자 승인으로 확정되어야 'AI가 독단 처리했다'가 되지 않습니다."},
+  {"id": 222, "text": "HITL의 세 가지 사람 행동으로 교재가 든 것은?", "choices": ["삭제, 암호화, 공개", "학습, 배포, 폐기만", "매수, 매도, 공매도", "승인, 수정, 반려"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 파이프라인은 그 지점에서 일시 중단했다가 사람 응답 후 다음 노드로 갑니다."},
+  {"id": 223, "text": "조회는 자동화하고 쓰기는 승인한다는 원칙을 워크플로 전체로 확장한 것이?", "choices": ["Zero-shot", "온도 스케줄링", "HITL", "Flat 인덱스"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 주문·이체처럼 상태를 바꾸는 작업은 실행 직전 게이트가 필요합니다."},
+  {"id": 224, "text": "토큰 스트리밍과 단계 스트리밍의 차이는?", "choices": ["토큰 스트리밍은 한국어에서 항상 한 글자씩이다", "전자는 생성 토큰을 흘리고, 후자는 지금 어느 노드인지 진행 상황을 흘린다", "둘 다 최종 답만 한 번에 보낸다", "단계 스트리밍은 UI에서 금지된다"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. Agent는 수 초~수십 초가 걸리므로, 담당자가 단계를 봐야 멈춘 것인지 일하는 것인지 압니다. 한국어는 한 글자가 여러 토큰일 수 있습니다."},
+  {"id": 225, "text": "체크포인트가 하는 일은?", "choices": ["진행 중인 상태를 저장해 중단 후 그 지점부터 재개한다", "모델을 처음부터 재학습한다", "모든 로그를 삭제한다", "사람 승인을 건너뛴다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 오래 걸리는 조사나 승인 대기가 있는 그래프에서 필요합니다."},
+  {"id": 226, "text": "폐쇄망에서 프레임워크 예제가 깨지는 가정은?", "choices": ["내부망이 인터넷과 분리되어 있다는 가정", "데이터를 밖에 내보내면 안 된다는 가정", "모델 가중치를 반입 절차로 받는다는 가정", "상용 모델 API, 클라우드 SaaS, 공개 패키지 저장소에 자유롭게 닿을 수 있다는 가정"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 전자금융감독규정 환경에서는 그 전제가 대부분 깨집니다. 모델 호출, 데이터 반출, 설치 경로를 따로 설계합니다."},
+  {"id": 227, "text": "사내 LLM Gateway의 역할은?", "choices": ["프롬프트를 외부 학습 데이터로 보낸다", "도구 권한을 제거한다", "모델 호출을 한 관문으로 모아 허용 모델, 데이터 경계, 기록을 통제한다", "각 앱이 인터넷 모델에 직접 붙게 한다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 도구를 Tool Proxy로 모으듯 모델 호출도 게이트웨이로 모읍니다. 편의를 위해 데이터를 밖으로 흘리면 규제 위반이 됩니다."},
+  {"id": 228, "text": "Agent가 단발 챗봇보다 비싼 세 이유는?", "choices": ["스트리밍을 끄면 토큰이 무한히 늘어서", "호출 횟수, 누적되는 토큰, 고성능 모델 등급", "UI 폰트, 로고, 도메인", "체크포인트가 계산을 늘려서가 아니라 인덱스가 없어서"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. 루프가 길어질수록 이전 대화와 도구 결과가 다음 호출에 다시 실립니다."},
+  {"id": 229, "text": "최적화를 시작하기 전에 할 일은?", "choices": ["어느 단계가 토큰과 지연을 쓰는지 관측 데이터로 측정한다", "가장 큰 모델로 전부 교체한다", "캐시를 추측으로 모든 노드에 켠다", "컨텍스트를 무제한으로 늘린다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 검증 재시도가 토큰의 대부분이면 거기를 고쳐야 합니다. 병목이 아닌 곳을 추측으로 최적화하지 않습니다."},
+  {"id": 230, "text": "Prompt Caching이 재사용하는 부분은?", "choices": ["매번 달라지는 사용자 계좌 잔고 전체", "도구의 부작용 결과", "승인자의 서명 이미지", "여러 호출에 반복되는 앞부분(prefix)"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 시스템 지시와 고정 스키마처럼 동일한 앞부분을 다시 계산하지 않습니다."},
+  {"id": 231, "text": "모델 라우팅의 취지는?", "choices": ["싼 모델이 주문을 최종 승인한다", "라우팅 기록을 남기지 않는다", "쉬운 분류·추출은 작고 싼 모델, 어려운 판단은 상위 모델에 맡긴다", "모든 노드가 항상 최대 모델을 쓴다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 단계별로 필요한 능력이 다릅니다. 어떤 모델이 어느 노드를 처리했는지는 관측에 남아야 합니다."},
+  {"id": 232, "text": "컨텍스트 압축을 할 때 지키지 말아야 할 것은?", "choices": ["압축 전후를 평가하는 것", "근거 식별자와 수치를 윤문 과정에서 빠뜨리거나 바꾸는 것", "오래된 중간 로그를 요약하는 것", "목표 문장을 유지하는 것"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. 짧아졌지만 사실이 바뀌면 비용은 줄고 사고는 늘어납니다."},
+  {"id": 233, "text": "금융 Agent에서 Observability가 운영 전제인 이유는?", "choices": ["비결정성, 다단계, 비용, 그리고 사후 소명·감사 때문이다", "장애가 난 뒤에만 보면 충분하기 때문이다", "프레임워크 추상화가 내부를 항상 보여 주기 때문이다", "최종 문장만 있으면 규제 대응이 끝나기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 왜 이 리밸런싱 제안이 나왔는지 설명하려면 실행 전 과정이 추적·보존되어야 합니다. 관측은 장애 로그 이상입니다."},
+  {"id": 234, "text": "추상화 뒤가 안 보일 때의 문제는?", "choices": ["그래프가 자동으로 감사 보고서를 확정한다", "체크포인트가 필요 없어진다", "사람 승인이 기록된다", "실제로 들어간 프롬프트, 도구 선택 이유, 토큰을 쓴 단계를 찾기 어렵다"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 관측은 그 가림막을 걷어 각 노드의 입력·출력·시간·토큰을 보게 합니다."},
+  {"id": 235, "text": "리밸런싱 워크플로의 책임 분배는?", "choices": ["투자자 성향과 무관하게 최고 위험 상품을 권한다", "규정 위반이어도 자동 체결한다", "괴리 계산과 제안은 자동, 계좌 반영은 사람 승인", "제안 생성 전에 시장가 주문을 먼저 낸다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 위험 한도와 투자자 성향을 넘는 권유인지 검사한 뒤 승인 게이트로 갑니다. 분석은 자동, 결정은 사람입니다."},
+  {"id": 236, "text": "컴플라이언스 점검 워크플로에서 위반 의심의 경로는?", "choices": ["리서치 배포 계정으로 주문을 낸다", "사람에게 에스컬레이션하고 자동으로 최종 판정을 확정하지 않는다", "모델 점수가 높으면 고객 통지를 바로 보낸다", "로그 없이 폐기한다"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. 통제형 자동화는 위반을 반드시 사람에게 넘깁니다."},
+  {"id": 237, "text": "프롬프트 한 줄을 여러 기능이 공유할 때 생긴 장애로 교재가 든 것은?", "choices": ["컴플라이언스용 조문 인용 지시가 리밸런싱 승인 요약까지 길게 만들어 JSON이 깨졌다", "코드 한 줄을 고쳐 배포 파이프라인이 잡았으므로 문제가 없었다", "모델 버전만 바뀌면 프롬프트 영향은 없다", "도구 스키마는 동작과 무관하다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 소스 코드가 안 바뀌었어도 배포입니다. 프롬프트는 기능별로 버전과 평가를 나눕니다."},
+  {"id": 238, "text": "Agent 동작을 결정하는 구성으로 교재가 열거한 것에 포함되지 않는 것은?", "choices": ["코드와 파이프라인", "시스템 프롬프트와 모델 버전·temperature", "도구 스키마와 상태 그래프 정의", "사무실 좌석 배치"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 이 조합이 하네스입니다. 코드만 형상 관리하면 프롬프트 변경 사고가 파이프라인 밖으로 샙니다."},
+  {"id": 239, "text": "배포 전 테스트에 넣을 대상으로 적절한 것은?", "choices": ["프로덕션 고객 잔고를 그대로 쓴 실험", "로그를 끈 상태의 데모", "대표 질의의 과제 성공, 도구 인자, 승인 게이트 동작, 스키마 준수", "개발자 개인의 한 번 시연"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 프롬프트·모델·도구·그래프가 함께 바뀌므로 회귀 평가가 릴리스 조건입니다."},
+  {"id": 240, "text": "비동기 병렬이 어울리는 구간은?", "choices": ["멱등 키 없는 중복 이체", "서로 독립인 종목 조회나 문서 검색", "승인 결과를 알아야 하는 주문 실행", "이전 노드의 실패를 입력으로 쓰는 보상 거래"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. 의존이 있는 단계는 순서를 그래프로 고정합니다."},
+  {"id": 241, "text": "스트리밍으로 내부 사고 과정 전체를 고객 화면에 그대로 내보내면?", "choices": ["시스템 지시, 다른 고객 정보, 미검증 중간 수치가 노출될 수 있다", "감사 로그를 대체하므로 저장이 필요 없다", "항상 규제 투명성 요건을 충족한다", "토큰 비용이 0이 된다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 담당자용 단계 표시와 고객용 문구는 거를 필드가 다릅니다."},
+  {"id": 242, "text": "Batch API가 어울리는 작업은?", "choices": ["창구에서 기다리는 주문 승인", "실시간 시세 호가", "세션 중 사람 승인", "즉시 응답이 필요 없는 야간 대량 분류·요약"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 급하지 않은 일을 모아 비용을 낮추는 선택입니다. 대화형 지연에는 쓰지 않습니다."},
+  {"id": 243, "text": "게이트웨이를 우회해 앱이 상용 API 키를 직접 가지면?", "choices": ["관측이 자동으로 완전해진다", "프롬프트 버전이 고정된다", "데이터 반출과 모델 변경을 한곳에서 막고 기록하기 어렵다", "폐쇄망 원칙과 일치한다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 호출 경로는 게이트웨이만 허용하는 편이 경계가 분명합니다."},
+  {"id": 244, "text": "체크포인트에 계좌번호 원문을 그대로 넣으면?", "choices": ["사람 승인 기록과 분리할 수 없다", "재개용 상태가 민감정보 저장소가 되어 보관·접근 통제가 필요하다", "체크포인트는 로그가 아니므로 규제 밖이다", "암호화 없이 두는 것이 재개 속도에 필수다"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. 재개에 필요한 최소 필드만 두고 식별자는 마스킹·토큰화합니다."},
+  {"id": 245, "text": "조건부 엣지의 예로 적절한 것은?", "choices": ["규정 검사 실패 시 제안 노드로 되돌리고, 통과 시 승인 노드로 간다", "항상 주문 노드로 간다", "상태와 무관하게 종료한다", "사람 반려를 무시한다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 분기가 코드에 드러나야 감사자가 경로를 읽습니다."},
+  {"id": 246, "text": "프레임워크 버전 업그레이드 때 함께 볼 것은?", "choices": ["사무실 네트워크 속도만", "로고 색", "평가셋을 지우는 일", "상태 스키마, 체크포인트 호환, 도구 호출 메시지 형식"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. OpenAI와 Anthropic도 도구 결과를 담는 메시지 형식이 다릅니다. 추상화 아래 형식이 바뀌면 재생과 감사가 깨집니다."},
+  {"id": 247, "text": "비용 대시보드에 노드별 토큰이 없으면?", "choices": ["캐시 적중률이 필요 없다", "승인 대기는 비용과 무관하므로 재지 않아도 된다", "어느 재시도 루프가 비싼지 추측만 하게 된다", "라우팅이 자동으로 최적이다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 측정 다음에 캐시, 라우팅, 압축, 배치를 고릅니다."},
+  {"id": 248, "text": "승인자가 수정한 제안과 모델 원안을 둘 다 남기는 이유는?", "choices": ["반려 사유는 규제상 남기면 안 되기 때문이다", "무엇이 바뀌어 실행됐는지 책임 소재를 재구성하기 위해서다", "저장 비용을 늘리기 위해서다", "모델 원안만 있으면 충분하기 때문이다"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. HITL 기록은 승인·수정·반려와 사유를 포함합니다."},
+  {"id": 249, "text": "그래프 밖에서 몰래 주문을 내는 헬퍼 함수는?", "choices": ["승인 노드를 우회하는 경로가 되어 상태 기계의 보증이 깨진다", "오케스트레이션의 권장 패턴이다", "관측을 더 쉽게 한다", "멱등성을 자동 부여한다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 부작용은 그래프에 보이는 노드와 게이트만 통과해야 합니다."},
+  {"id": 250, "text": "두 워크플로 실습이 챕터 7로 넘어가는 다리는?", "choices": ["둘 다 사람 없이 최종 확정한다는 점", "관측을 끄고 배포한다는 점", "폐쇄망 게이트웨이를 제거한다는 점", "리밸런싱은 반자동, 컴플라이언스는 에스컬레이션이라는 통제 강도의 차이"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 능력 있는 Agent 위에 어떤 통제를 씌울지의 문제로 이어집니다."},
+  {"id": 251, "text": "시스템 프롬프트를 기능 사이에 공유하지 말아야 하는 이유는?", "choices": ["평가셋을 하나로 합치는 것이 항상 안전하기 때문이다", "모델 파라미터는 프롬프트와 무관하기 때문이다", "한 기능의 형식 요구가 다른 기능의 요약·스키마를 깨뜨리기 때문이다", "공유하면 버전 번호가 필요 없어지기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 지시문도 배포 단위로 분리하고 각각 회귀 테스트합니다."},
+  {"id": 252, "text": "stream_mode로 노드 업데이트를 받을 때의 목적은?", "choices": ["승인을 자동 통과시키기 위해서다", "사용자 또는 담당자에게 현재 단계를 알리기 위해서다", "체크포인트를 삭제하기 위해서다", "모델 가중치를 스트림으로 학습하기 위해서다"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. 진행 이벤트와 최종 답 토큰은 용도가 다릅니다."},
+  {"id": 253, "text": "온프레미스에서 패키지를 공개 인터넷으로 받지 못할 때?", "choices": ["사내 미러와 반입 절차로 모델 가중치·의존성을 가져온다", "예제 노트북의 pip 명령을 폐쇄망에서 그대로 실행한다", "키를 개인 PC에 두고 우회한다", "데이터만 클라우드로 보낸다"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 설치 경로도 아키텍처의 일부입니다."},
+  {"id": 254, "text": "평가 없이 라우팅 규칙만 바꾸면?", "choices": ["품질이 자동으로 유지된다", "관측 지표가 필요 없다", "승인 게이트가 대체된다", "싼 모델이 고위험 판단까지 떠맡아도 눈치채기 어렵다"], "answer": "D", "multi": false, "explanation": "챕터 6 프레임워크. 노드별 모델은 그 노드의 평가 점수로 정당화되어야 합니다."},
+  {"id": 255, "text": "장기 실행 그래프를 프로세스 메모리에만 두면?", "choices": ["감사 기록이 영구 보존된다", "멱등 키가 자동 생성된다", "프로세스 재시작 시 승인 대기 중이던 상태가 사라진다", "체크포인트와 같은 효과가 있다"], "answer": "C", "multi": false, "explanation": "챕터 6 프레임워크. 중단 재개가 필요하면 상태를 지속 저장소에 체크포인트합니다."},
+  {"id": 256, "text": "챕터 6의 종합 실습이 새 개념보다 강조한 것은?", "choices": ["사람 승인을 제거하는 방법", "상태 그래프, 승인, 병렬, 게이트웨이, 라우팅, 관측을 어떤 순서와 조건으로 엮는가", "특정 프레임워크 API의 정확한 함수 시그니처 암기", "인터넷 SaaS만으로 계좌를 처리하는 방법"], "answer": "B", "multi": false, "explanation": "챕터 6 프레임워크. API 형식은 버전마다 다르므로 공식 문서로 확인하고, 설계의 뼈대를 보는 장입니다."},
+  {"id": 257, "text": "동일 조건 재생에 필요한 최소 세트에 가까운 것은?", "choices": ["입력, 그래프 버전, 프롬프트 버전, 모델과 파라미터, 도구 응답 또는 그 기록", "최종 문장 한 줄", "담당자 이름만", "GPU 온도"], "answer": "A", "multi": false, "explanation": "챕터 6 프레임워크. 비결정 시스템일수록 당시 조건을 남기지 않으면 소명이 불가능합니다."},
+  {"id": 258, "text": "금융권 AI Agent 개발에서 규제·거버넌스를 뒤에 붙이면 안 되는 이유는?", "choices": ["성능이 좋으면 감독 검토가 면제되기 때문이다", "개인정보는 마지막 출력에서만 가리면 앞 단계 로그는 안전하기 때문이다", "일반 소프트웨어의 '만들고 나서 고친다'가 금융에도 동일하기 때문이다", "로그·마스킹·승인 없는 호출은 지난 뒤에 근거를 재구성할 수 없기 때문이다"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 통제는 사후 장식이 아니라 설계 초기의 제약입니다. 정보보호·준법·리스크 검토는 성능이 아니라 정보 처리, 오판 차단, 책임과 소명을 묻습니다."},
+  {"id": 259, "text": "규제를 암기하는 대신 교재가 목표로 둔 것은?", "choices": ["회사 해석과 무관하게 하나의 구현만 허용하는 것", "규제 원문은 변하지 않으므로 개정 확인이 불필요한 것", "요구의 종류를 가드레일, 감사 로그, 평가 같은 부품으로 번역하는 지도", "조문 번호를 모델 가중치에 외우게 하는 것"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 원문은 개정되고 회사마다 해석이 다릅니다. 새 내규를 만나면 어느 부품 문제인지 분류할 수 있어야 합니다."},
+  {"id": 260, "text": "폐쇄망에서 모델을 고르는 첫 기준은?", "choices": ["데모 영상이 인상적인가", "그 업무의 데이터가 어디까지 나가도 되는가", "벤치마크 리더보드 1위인가", "컨텍스트 창이 가장 긴가"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 개인신용정보가 프롬프트에 실리면 외부 상용 API가 부적절할 수 있고, 공개 시장 정보만 쓰는 저위험 업무는 통제된 상용 API가 합리적일 수 있습니다."},
+  {"id": 261, "text": "sLLM이라는 말을 실무에서 넓게 쓸 때의 의미는?", "choices": ["사내에서 자체 호스팅하는 오픈소스·상대적 소형 모델", "외부 SaaS 중 가장 큰 모델", "파인튜닝이 금지된 베이스 모델만", "도구를 호출하지 않는 챗봇"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 원래 smaller를 가리키지만, 자체 호스팅 모델을 통칭하기도 합니다. 무조건 sLLM도 무조건 상용 API도 정답이 아닙니다."},
+  {"id": 262, "text": "개인식별정보의 직접 식별자와 간접 식별자를 맞게 구분한 것은?", "choices": ["둘 다 단독으로는 절대 식별되지 않는다", "계좌 잔고는 일반 공개 정보다", "간접 식별자는 결합해도 규제 대상이 아니다", "이름은 직접, 생년월일·성별·직업의 조합은 간접일 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 금융에서는 계좌, 거래, 잔고, 신용등급, 대출·연체처럼 신용정보법의 개인신용정보가 더 엄격합니다."},
+  {"id": 263, "text": "마스킹을 출력 직전에만 붙일 때의 문제는?", "choices": ["모델은 PII를 컨텍스트에 올리지 못한다", "감사 로그에는 원문이 들어가면 안 되므로 문제가 없다", "그 전에 원본이 프롬프트, 도구 결과, 관측 로그에 이미 남을 수 있다", "입력 단계 마스킹보다 항상 더 안전하다"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 보호는 파이프라인 입구에서 해야 하며, Secure by Design입니다."},
+  {"id": 264, "text": "4계층 Guardrail의 순서로 교재가 정리한 것은?", "choices": ["매수, 매도, 정산, 공시", "입력 필터, 처리 중 정책 집행, 출력 검증, 사람 승인", "파인튜닝, 배포, 광고, 폐기", "청킹, 임베딩, 인덱싱, 삭제"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 한 계층이 놓친 것을 다음 계층이 잡습니다. 사람 승인은 그림상 마지막이지만 주문처럼 도구 실행 직전에도 걸립니다."},
+  {"id": 265, "text": "모델에 내장된 안전장치만으로 부족한 이유는?", "choices": ["확률적이고 표현을 바꾸면 우회될 수 있기 때문이다", "정렬이 끝나면 인젝션이 정의상 불가능하기 때문이다", "시스템 프롬프트가 접근통제와 같기 때문이다", "금융은 대체로 안전하면 충분하기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 가드레일은 모델을 신뢰하지 않고 입출력을 밖에서 검사합니다."},
+  {"id": 266, "text": "입력 필터가 거르는 대상에 해당하는 것은?", "choices": ["모든 종목 코드와 금액", "시스템 프롬프트 전체", "승인자의 계정", "인젝션 패턴, 명백한 금지 요청, 불필요한 PII, 업무 범위 밖 질문"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 규칙 기반은 빠르고 결정적이며, 표현을 바꾼 우회는 안전 분류 모델이 돕습니다. 금융 대화의 정상 계좌·금액을 무조건 막으면 서비스가 안 됩니다."},
+  {"id": 267, "text": "처리 중 정책 집행의 예는?", "choices": ["타 고객 잔고 조회를 프롬프트로만 막는다", "쓰기 도구의 승인을 제거한다", "리서치 Agent에는 주문 도구를 등록하지 않고 조회만 허용한다", "모델이 제안한 모든 도구를 실행한다"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 허용 목록, 최소 권한, 호출 한도가 이 계층입니다."},
+  {"id": 268, "text": "출력 검증이 잡아야 하는 것은?", "choices": ["사용자가 칭찬했는지", "근거 없는 수치, 남아 있는 민감정보, 정책 밖 권유, 스키마 위반", "문법적으로 자연스러운지 여부만", "토큰 수가 많은지 여부만"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 생성 후 코드와 규칙으로 검사하고, 실패하면 차단하거나 다시 만들거나 사람에게 넘깁니다."},
+  {"id": 269, "text": "사람 승인을 고위험 행위에만 두텁게 거는 이유는?", "choices": ["모든 조회까지 사람이 보면 지연과 비용이 과하고, 위험과 강도를 비례시켜야 하기 때문이다", "저위험 업무에는 가드레일 자체가 금지되기 때문이다", "고위험일수록 모델을 더 믿어야 하기 때문이다", "승인 기록은 감사 대상이 아니기 때문이다"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 빠른 규칙으로 대부분을 거르고 비싼 모델 검사는 애매한 경우에만 씁니다. 과잉 차단과 과소 차단은 운영 중 다시 맞춥니다."},
+  {"id": 270, "text": "프롬프트 인젝션, Jailbreak, 데이터 유출의 관계는?", "choices": ["셋은 같은 공격의 다른 이름일 뿐 구분이 없다", "유출은 인젝션과 절대 함께 쓰이지 않는다", "Jailbreak는 권한을 강화하는 설정이다", "인젝션은 수법, Jailbreak는 안전장치 우회라는 목표, 유출은 정보 탈취라는 목표인 경우가 많다"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 시스템 프롬프트를 출력하라거나 조회 결과를 외부로 보내라는 요구가 결합됩니다. 지시와 데이터가 한 텍스트 스트림인 구조가 뿌리입니다."},
+  {"id": 271, "text": "검색 문서 속의 숨은 지시를 다루는 방법은?", "choices": ["문서 원문을 그대로 시스템 프롬프트에 덮어쓴다", "출력 검증을 끈다", "참고 자료로 격리하고 그 문장이 도구 호출이나 정책 변경을 유발하지 못하게 한다", "검색 점수가 높으면 시스템 지시보다 우선한다"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 간접 인젝션은 사용자가 치지 않은 데이터가 공격면이 되는 경우입니다."},
+  {"id": 272, "text": "Agent 평가가 단일 LLM 호출보다 어려운 세 이유는?", "choices": ["평가셋이 규제상 금지되기 때문", "다단계 과정, 도구 사용의 정확성, 비결정성", "문법이 더 짧고, 도구가 없고, 항상 같은 답이 나오기 때문", "정답이 한 문장으로 끝나고 외부 상태가 없기 때문"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 최종 답이 맞아도 중간에 엉뚱한 도구를 불렀을 수 있습니다. 한 번의 시연이 아니라 다수 사례의 통계여야 합니다."},
+  {"id": 273, "text": "Agent 평가의 세 층위로 교재가 제시한 것은?", "choices": ["과업 성공, 과정(도구·경로), 산출물 품질(근거 부합·정확·안전)", "폰트, 색, 여백", "학습 손실, 에폭, GPU 온도", "가입자 수, 광고 클릭, 세션 길이"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 결과만 보면 운을 거르지 못하고, 과정만 보면 사용자가 원한 결과를 놓칩니다."},
+  {"id": 274, "text": "사실·규정 업무의 temperature 기본값은?", "choices": ["다양성을 위해 1 이상", "호출마다 무작위", "감사 로그가 있으면 온도와 무관하다", "0에 가깝게 낮춰 흔들림을 줄인다"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 브레인스토밍만 높입니다. 낮춰도 무작위성이 완전히 사라지진 않으며, seed가 있어도 한도와 외부 세계 변화는 남습니다."},
+  {"id": 275, "text": "감사 로그가 나중에 답해야 하는 질문은?", "choices": ["담당자가 누구인지 이름만", "최종 문장의 글자 수", "그때 어떤 입력, 검색 근거, 도구 호출, 모델 버전, 승인으로 그 답이 나왔는가", "오늘 다시 실행하면 항상 같은 문장인가만"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 다시 돌려 같은 문장이 안 나와도, 당시 기록이 있으면 소명할 수 있습니다. 상관관계 ID로 한 요청의 단계를 묶습니다."},
+  {"id": 276, "text": "재현 가능과 감사 가능의 차이에 가까운 설명은?", "choices": ["seed가 있으면 공시 내용이 불변이다", "바이트 단위 재생이 안 되어도 당시 조건과 근거가 보존되면 감사는 가능하다", "temperature가 0이면 시세까지 과거로 고정된다", "로그가 없으면 재실행으로 항상 소명된다"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 비결정성의 직접 원인은 샘플링이고, 세계 상태도 변합니다."},
+  {"id": 277, "text": "리서치 어시스턴트와 컴플라이언스 Agent의 통제 무게중심은?", "choices": ["리서치는 환각·근거·PII·초안 검토, 컴플라이언스는 판정의 신뢰·재현·책임·사람 최종판단", "둘 다 같은 강도의 자동 확정이 정답이다", "컴플라이언스는 근거가 필요 없다", "리서치는 사람 검토가 금지된다"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 하나의 정답 아키텍처가 아니라 업무의 위험 프로파일에 따라 강조점이 달라집니다."},
+  {"id": 278, "text": "리서치 어시스턴트 산출물의 기본 신분은?", "choices": ["고객에게 바로 나가는 확정 투자의견", "감독 보고의 최종본", "주문 지시서", "애널리스트 검토 전의 초안"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 검색·시세 도구로 근거를 붙이되, 주문 도구는 등록하지 않는 것이 이 사례의 정책입니다."},
+  {"id": 279, "text": "컴플라이언스 Agent가 스스로 최종 위반 판정을 확정하면 안 되는 이유는?", "choices": ["감사 로그가 판정을 대체하기 때문이다", "고영향 여부와 무관하기 때문이다", "그 판정이 타인에게 불이익을 줄 수 있어 책임 있는 사람의 감독이 필요하기 때문이다", "분류 모델은 항상 100%이기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 통제 장치를 다시 통제해야 하는 사례입니다. 재현 가능한 근거와 사람 확정이 핵심입니다."},
+  {"id": 280, "text": "금융 규제와 AI 수평 규제의 시선 차이는?", "choices": ["신용정보법은 모델의 설명 의무만 다룬다", "금융 규제는 데이터와 인프라, AI 규제는 시스템의 판단과 그 감독·설명을 본다", "둘은 같은 조문이다", "AI 기본법은 금융회사에 적용되지 않는다"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 한국의 AI 기본법과 EU AI Act는 업종을 가로지르는 층입니다. 신용정보법의 질문과 AI 규제의 질문은 겹치기보다 포개집니다."},
+  {"id": 281, "text": "고영향·고위험 여부 판단이 체크리스트에서 하는 일은?", "choices": ["서비스 기획 단계에서 분류와 그 근거를 기록하는 일", "배포 후에 모델이 스스로 분류하게만 두는 일", "가드레일을 제거하는 일", "로그 보존 기간을 0으로 두는 일"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 나머지 많은 항목은 이미 만든 가드레일, 평가, 감사 로그를 규제 언어에 매핑하는 일입니다."},
+  {"id": 282, "text": "사람 감독 요건을 구현하는 기술 부품은?", "choices": ["HNSW의 efSearch", "프롬프트 캐시", "청크 오버랩", "4계층 중 사람 승인 게이트"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. human oversight는 새 기능을 무한히 만들기보다 기존 HITL을 책임·SLA와 함께 확정하는 일입니다."},
+  {"id": 283, "text": "기록 보존 의무와 연결되는 기존 부품은?", "choices": ["개발자 메신저", "만료된 데모 캡처", "상관관계 ID가 있는 감사 로그와 재현 조건 기록", "고객 화면에 뿌린 토큰 스트림만"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 정확성·견고성은 Task Success와 안전성 지표의 정기 평가로 보입니다."},
+  {"id": 284, "text": "이용자 고지·생성물 표시에 가까운 구현은?", "choices": ["표시는 규제와 무관하므로 생략한다", "출력에 AI 생성 초안임과 검토 필요를 붙이고 그 표시를 메타데이터로 남긴다", "확정본처럼 도장을 자동으로 찍는다", "고지를 시스템 프롬프트에만 두고 화면에는 숨긴다"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 체크리스트에서 분류 판단과 고지·표시는 상대적으로 새로 채울 일이고, 나머지는 기존 통제의 두 번째 존재 이유입니다."},
+  {"id": 285, "text": "통제를 '규제가 시켜서'로만 정당화할 때의 약점은?", "choices": ["규제가 느슨한 영역에서 통제가 후퇴하기 쉽다", "운영 품질과 동시에 말하면 지속되기 어렵다", "감사 로그의 가치가 사라진다", "평가셋이 자동으로 생긴다"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 운영 품질을 위해 만들었고 규제 대응도 된다고 말할 수 있으면 통제가 유지됩니다."},
+  {"id": 286, "text": "PoC를 올릴 때 모델 선택보다 먼저 확정하라는 것은?", "choices": ["리더보드 순위", "최대 컨텍스트 길이", "스트리밍 애니메이션", "어느 부서가 어떤 절차와 SLA로 사람 검토·준법 심의를 책임지는가"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 감사 로그에 남길 항목과 groundedness 임계도 모델보다 앞선 설계 결정입니다."},
+  {"id": 287, "text": "PII가 도구 결과에 섞여 모델 컨텍스트로 바로 들어가면?", "choices": ["신용정보가 일반 로그로 분류된다", "간접 식별자는 결합해도 괜찮다", "최소 권한과 마스킹이 도구 경계에 없다는 뜻이다", "출력 필터만 있으면 입구는 안전하다"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 보유 종목 분석 요청 하나에 계좌번호와 잔고가 프롬프트로 들어올 수 있습니다. 필요한 필드만 남깁니다."},
+  {"id": 288, "text": "다층 방어에서 PII를 겹쳐 막는 예는?", "choices": ["로그에 원문을 두고 화면에서만 가리기", "입력에서 마스킹, 처리 중 접근 제한, 출력에서 잔존 검사, 대량 조회는 승인", "출력에서 한 번만 검사", "학습 데이터에 원문을 넣어 모델이 잊게 하기"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 어느 계층이 놓쳐도 다른 계층이 잡는 구조입니다."},
+  {"id": 289, "text": "groundedness 검증이 의미 있으려면 전제가 필요한 것은?", "choices": ["좋은 검색과 출처 식별자가 먼저 있어야 한다", "검색 없이 모델 기억만 있으면 된다", "사람 승인이 검증을 대체한다", "온도를 높이면 근거가 생긴다"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 통제 계층은 앞 계층을 부정하지 않습니다. 좋은 RAG, 최소 권한 도구, 관측 가능한 루프 위에 얹힙니다."},
+  {"id": 290, "text": "안전 평가셋에 넣을 사례로 적절한 것은?", "choices": ["정상 운영처럼 보이는 데모 질문만", "이미 통과한다고 아는 샘플만", "개인 계좌 원문 그대로", "인젝션 문장, 타 고객 조회 요구, 근거 없는 수익 보장 문장"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 막아야 할 것과 통과해야 할 정상 업무 문장을 둘 다 두어야 과잉·과소 차단을 봅니다."},
+  {"id": 291, "text": "규정 원문이 개정되었는데 가드레일 문구만 옛 조항을 인용하면?", "choices": ["감사 로그가 조항을 갱신한다", "온도를 0으로 두면 최신 규정이 된다", "구현이 있어도 준법 검토로 최신 원문과 다시 맞춰야 한다", "모델이 개정을 자동 반영하므로 괜찮다"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 교재의 주의 표시처럼 수치·조항은 최신 원문과 준법 확인이 필요합니다. 퀴즈의 규제 문항도 개념 지도이지 법률 자문이 아닙니다."},
+  {"id": 292, "text": "리서치 경로에 주문 도구가 등록돼 있다는 사실을 평가가 잡아야 하는 층은?", "choices": ["청크 크기", "과정 평가의 도구·권한 정책", "문장 유창성만", "GPU 사용률"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 최종 요약이 맞아도 허용되면 안 되는 도구가 있으면 실패입니다."},
+  {"id": 293, "text": "상관관계 ID가 없으면?", "choices": ["한 요청의 입력·검색·도구·출력·승인을 한 줄로 재구성하기 어렵다", "로그 용량이 줄어 감사가 쉬워진다", "재현 조건은 ID와 무관하게 자동 연결된다", "개인정보 마스킹이 완성된다"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 분산된 노드 로그를 묶는 키가 필요합니다."},
+  {"id": 294, "text": "컴플라이언스 판정을 샘플링 temperature 1로 두면?", "choices": ["재현성과 감사에 유리하다", "seed 없이도 결정적이 된다", "사람 감독이 필요 없어진다", "같은 사건도 실행마다 다른 판정이 나와 소명이 어려워진다"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 판정·규정·사실 요약은 낮은 온도가 기본입니다."},
+  {"id": 295, "text": "하네스가 챕터 7에서 완성된다고 보는 이유는?", "choices": ["프레임워크를 설치했기 때문이다", "평가를 생략해도 되기 때문이다", "입력·지식·행동·제어 위에 통제 계층이 씌워져 운영 가능한 둘레가 되기 때문이다", "모델 파라미터가 충분히 커졌기 때문이다"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 능력은 앞 장이 주고, 통제 계층은 그 능력이 규정 안에서 추적 가능하게 쓰이게 합니다."},
+  {"id": 296, "text": "위험관리 문서에 연결할 기술 산출물은?", "choices": ["사무실 좌석도", "위협 시나리오, 가드레일 설계, 안전 평가셋과 그 결과", "마케팅 슬로건", "모델 로고"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 문서만 있고 평가가 없거나, 평가만 있고 어떤 위협을 막는지 없으면 매핑이 끊깁니다."},
+  {"id": 297, "text": "다른 사용자의 잔고를 보여 달라는 인젝션이 성공했다면 깨진 계층은?", "choices": ["입력 격리만이 아니라 도구 권한과 출력 검사까지 함께 실패한 것이다", "입력 필터만 고치면 권한은 그대로 둬도 된다", "모델 정렬이 끝났다면 재발할 수 없다", "로그를 끄면 유출이 아니다"], "answer": "A", "multi": false, "explanation": "챕터 7 운영·거버넌스. 유출은 대개 인젝션이 과도한 권한과 만날 때 커집니다."},
+  {"id": 298, "text": "초안 고지를 메타데이터에만 두고 고객 화면에는 확정 문장처럼 보이면?", "choices": ["고지 의무를 충족한다", "사람 검토가 끝난 것과 같다", "감사 로그가 표시를 대체한다", "투명성·표시 요건과 불완전판매 예방 모두를 놓칠 수 있다"], "answer": "D", "multi": false, "explanation": "챕터 7 운영·거버넌스. 보는 사람과 기계가 읽는 표시가 함께 있어야 합니다."},
+  {"id": 299, "text": "정기 평가를 배포 때만 하고 규정이 바뀐 뒤에는 안 하면?", "choices": ["가드레일 임계값을 다시 맞출 필요가 없다", "감사 로그가 평가를 포함한다", "옛 평가 점수가 새 위험과 새 문서를 보증하지 못한다", "Task Success가 영구히 유지된다"], "answer": "C", "multi": false, "explanation": "챕터 7 운영·거버넌스. 문서 갱신, 프롬프트 변경, 모델 교체마다 같은 기준을 다시 잽니다."},
+  {"id": 300, "text": "교재 전체의 마지막 순서로 가장 알맞은 것은?", "choices": ["평가셋 없이 데모 점수로 오픈한다", "통제 계층의 책임자와 로그·평가 기준을 먼저 정하고, 그 경계 안에서 모델을 고른다", "가장 큰 모델을 고른 뒤 막히면 로그를 추가한다", "주문을 자동화한 뒤 승인 부서를 찾는다"], "answer": "B", "multi": false, "explanation": "챕터 7 운영·거버넌스. 금융권 Agent는 모델 선택 못지않게 하네스, 그중에서도 통제 계층 설계가 운영 가능성을 좌우합니다."},
+];
+var TOTAL = ALL_QUESTIONS.length;
+
+/* ── 상태 ── */
+var mode = 'preset';
+var selectedCount = 20;
+var rangeFrom = 1, rangeTo = TOTAL;
+var customCount = 0;
+var selectedQIds = [];   // 그리드에서 선택된 Q id 목록
+var quizQuestions = [];
+var currentIndex = 0;
+var userAnswers = [];
+var selectedChoices = [];
+var answered = false;
+var startTime, timerInterval, totalSeconds = 0;
+var isMidResult = false;
+
+/* ── 유틸 ── */
+function shuffle(arr) {
+  var a = arr.slice();
+  for (var i = a.length - 1; i > 0; i--) {
+    var j = Math.floor(Math.random() * (i + 1));
+    var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+  }
+  return a;
+}
+function gel(id) { return document.getElementById(id); }
+function escapeHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+function show(id) { gel(id).style.display = 'block'; }
+function hide(id) { gel(id).style.display = 'none'; }
+
+/* ── 문제 선택 그리드 초기화 ── */
+function initQGrid() {
+  selectedQIds = [];
+  for (var i = 0; i < ALL_QUESTIONS.length; i++) selectedQIds.push(ALL_QUESTIONS[i].id);
+  var grid = gel('qgrid');
+  grid.innerHTML = '';
+  for (var i = 0; i < ALL_QUESTIONS.length; i++) {
+    (function(q) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'qbtn on';
+      btn.id = 'qb_' + q.id;
+      btn.textContent = q.id;
+      btn.onclick = function() { toggleQ(q.id, btn); };
+      grid.appendChild(btn);
+    })(ALL_QUESTIONS[i]);
+  }
+  updateQSelectCount();
+}
+
+function toggleQ(id, btn) {
+  var pos = selectedQIds.indexOf(id);
+  if (pos === -1) {
+    selectedQIds.push(id);
+    btn.classList.add('on');
+  } else {
+    selectedQIds.splice(pos, 1);
+    btn.classList.remove('on');
+  }
+  updateQSelectCount();
+  /* 그리드에서 직접 선택하면 다른 모드 해제 */
+  mode = 'custom';
+  clearAllCards();
+  gel('customCountInput').value = '';
+  gel('customCountDisplay').innerHTML = '직접<br>입력';
+  gel('rangeFrom').value = '';
+  gel('rangeTo').value = '';
+  gel('rangePreview').textContent = '';
+  gel('customRangeRow').classList.remove('active');
+  gel('btnStart').disabled = (selectedQIds.length === 0);
+}
+
+function updateQSelectCount() {
+  gel('qselectCount').textContent = '선택: ' + selectedQIds.length + ' / ' + TOTAL;
+  gel('btnStart').disabled = (selectedQIds.length === 0);
+}
+
+function selectAllQ() {
+  selectedQIds = [];
+  for (var i = 0; i < ALL_QUESTIONS.length; i++) {
+    selectedQIds.push(ALL_QUESTIONS[i].id);
+    var btn = gel('qb_' + ALL_QUESTIONS[i].id);
+    if (btn) btn.classList.add('on');
+  }
+  updateQSelectCount();
+}
+
+function clearAllQ() {
+  selectedQIds = [];
+  for (var i = 0; i < ALL_QUESTIONS.length; i++) {
+    var btn = gel('qb_' + ALL_QUESTIONS[i].id);
+    if (btn) btn.classList.remove('on');
+  }
+  mode = 'custom';
+  clearAllCards();
+  updateQSelectCount();
+}
+
+function invertQ() {
+  for (var i = 0; i < ALL_QUESTIONS.length; i++) {
+    var id = ALL_QUESTIONS[i].id;
+    var pos = selectedQIds.indexOf(id);
+    var btn = gel('qb_' + id);
+    if (pos === -1) { selectedQIds.push(id); if(btn) btn.classList.add('on'); }
+    else { selectedQIds.splice(pos, 1); if(btn) btn.classList.remove('on'); }
+  }
+  mode = 'custom';
+  clearAllCards();
+  updateQSelectCount();
+}
+
+/* 프리셋 선택하면 그리드도 연동 */
+function syncGridToCount(n) {
+  /* 전체 선택 후 그리드 표시만 업데이트 */
+  selectAllQ();
+}
+
+function clearAllCards() {
+  var cards = document.querySelectorAll('.opt-card');
+  for (var i = 0; i < cards.length; i++) cards[i].classList.remove('selected');
+}
+
+function selectPreset(n, cardId) {
+  mode = 'preset';
+  selectedCount = n;
+  clearAllCards();
+  gel(cardId).classList.add('selected');
+  gel('customCountInput').value = '';
+  gel('customCountDisplay').innerHTML = '직접<br>입력';
+  gel('rangeFrom').value = '';
+  gel('rangeTo').value = '';
+  gel('rangePreview').textContent = '';
+  gel('customRangeRow').classList.remove('active');
+  selectAllQ();
+  gel('btnStart').disabled = false;
+}
+
+function focusCustomCount() { gel('customCountInput').focus(); }
+
+function onCustomCountFocus() {
+  mode = 'customCount';
+  clearAllCards();
+  gel('cardCustom').classList.add('selected');
+  gel('rangeFrom').value = '';
+  gel('rangeTo').value = '';
+  gel('rangePreview').textContent = '';
+  gel('customRangeRow').classList.remove('active');
+  selectAllQ();
+  var v = parseInt(gel('customCountInput').value);
+  gel('btnStart').disabled = !(v >= 1 && v <= TOTAL);
+}
+
+function onCustomCountInput() {
+  mode = 'customCount';
+  clearAllCards();
+  gel('cardCustom').classList.add('selected');
+  selectAllQ();
+  var v = parseInt(gel('customCountInput').value);
+  if (v >= 1 && v <= TOTAL) {
+    customCount = v;
+    gel('customCountDisplay').innerHTML = '<span style="font-size:20px;font-weight:900;color:var(--accent)">' + v + '</span>';
+    gel('btnStart').disabled = false;
+  } else {
+    customCount = 0;
+    gel('customCountDisplay').innerHTML = '직접<br>입력';
+    gel('btnStart').disabled = true;
+  }
+}
+
+function onRangeInput() {
+  mode = 'range';
+  clearAllCards();
+  gel('customCountInput').value = '';
+  gel('customCountDisplay').innerHTML = '직접<br>입력';
+  gel('customRangeRow').classList.add('active');
+  var fv = gel('rangeFrom').value;
+  var tv = gel('rangeTo').value;
+  var f = parseInt(fv) || 0;
+  var t = parseInt(tv) || 0;
+  var preview = gel('rangePreview');
+  if (!fv && !tv) {
+    preview.textContent = '';
+    preview.className = 'range-preview';
+    gel('btnStart').disabled = true;
+    gel('customRangeRow').classList.remove('active');
+    return;
+  }
+  if (f < 1 || f > TOTAL || t < 1 || t > TOTAL || f > t) {
+    preview.textContent = '범위 오류';
+    preview.className = 'range-error';
+    gel('btnStart').disabled = true;
+  } else {
+    preview.textContent = (t - f + 1) + '문제';
+    preview.className = 'range-preview';
+    rangeFrom = f; rangeTo = t;
+    /* 그리드 연동 */
+    selectedQIds = [];
+    for (var i = 0; i < ALL_QUESTIONS.length; i++) {
+      var id = ALL_QUESTIONS[i].id;
+      var btn = gel('qb_' + id);
+      if (id >= f && id <= t) { selectedQIds.push(id); if(btn) btn.classList.add('on'); }
+      else { if(btn) btn.classList.remove('on'); }
+    }
+    gel('qselectCount').textContent = '선택: ' + selectedQIds.length + ' / ' + TOTAL;
+    gel('btnStart').disabled = false;
+  }
+}
+
+/* ── 시작 ── */
+function startQuiz() {
+  var pool = [];
+  if (mode === 'custom') {
+    /* 그리드에서 직접 고른 문제들, 순서 유지 */
+    for (var i = 0; i < ALL_QUESTIONS.length; i++) {
+      if (selectedQIds.indexOf(ALL_QUESTIONS[i].id) !== -1) pool.push(ALL_QUESTIONS[i]);
+    }
+  } else if (mode === 'range') {
+    for (var i = 0; i < ALL_QUESTIONS.length; i++) {
+      if (ALL_QUESTIONS[i].id >= rangeFrom && ALL_QUESTIONS[i].id <= rangeTo) pool.push(ALL_QUESTIONS[i]);
+    }
+  } else if (mode === 'customCount') {
+    if (!customCount || customCount < 1 || customCount > TOTAL) return;
+    pool = shuffle(ALL_QUESTIONS).slice(0, customCount);
+  } else {
+    /* preset: 전체에서 랜덤 N개 */
+    pool = shuffle(ALL_QUESTIONS).slice(0, selectedCount);
+  }
+  if (!pool.length) return;
+  quizQuestions = pool;
+  currentIndex = 0;
+  userAnswers = [];
+  for (var i = 0; i < quizQuestions.length; i++) userAnswers.push(null);
+  isMidResult = false; totalSeconds = 0;
+  startTime = Date.now();
+  timerInterval = setInterval(updateTimer, 1000);
+  hide('startScreen'); show('quizScreen');
+  renderQuestion();
+}
+
+function updateTimer() {
+  totalSeconds = Math.floor((Date.now() - startTime) / 1000);
+  var m = Math.floor(totalSeconds / 60); var s = totalSeconds % 60;
+  gel('qTimer').textContent = '⏱ ' + (m<10?'0':'') + m + ':' + (s<10?'0':'') + s;
+}
+
+/* ── 문제 렌더 ── */
+function renderQuestion() {
+  var q = quizQuestions[currentIndex];
+  var ua = userAnswers[currentIndex];
+  answered = (ua !== null);
+  selectedChoices = ua ? ua.selected.slice() : [];
+
+  gel('qCounter').textContent = 'Q' + (currentIndex + 1) + ' / ' + quizQuestions.length;
+  gel('progressFill').style.width = (currentIndex / quizQuestions.length * 100) + '%';
+  gel('qTags').innerHTML =
+    '<span class="q-tag">Q' + q.id + '</span>' +
+    (q.multi ? '<span class="q-tag multi">복수 정답</span>' : '<span class="q-tag">단일 정답</span>');
+  gel('qText').textContent = q.text;
+
+  var list = gel('choicesList');
+  list.innerHTML = '';
+  var labels = ['A','B','C','D','E','F'];
+  var correctArr = q.answer.split(',').sort();
+
+  for (var i = 0; i < q.choices.length; i++) {
+    (function(idx) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'choice-btn';
+      var ls = document.createElement('span'); ls.className = 'choice-label'; ls.textContent = labels[idx];
+      var ts = document.createElement('span'); ts.textContent = q.choices[idx];
+      btn.appendChild(ls); btn.appendChild(ts);
+
+      if (answered) {
+        btn.disabled = true;
+        var inCorrect = (correctArr.indexOf(labels[idx]) !== -1);
+        var inUser = (selectedChoices.indexOf(labels[idx]) !== -1);
+        if (inCorrect && inUser) { btn.classList.add('correct'); ls.style.color='var(--success)'; }
+        else if (inCorrect) { btn.classList.add('reveal-correct'); ls.style.color='var(--success)'; }
+        else if (inUser) { btn.classList.add('wrong'); ls.style.color='var(--error)'; }
+      } else {
+        if (selectedChoices.indexOf(labels[idx]) !== -1) btn.classList.add('selected');
+        btn.onclick = function() { toggleChoice(idx, btn, q.multi); };
+      }
+      list.appendChild(btn);
+    })(i);
+  }
+
+  /* 피드백 */
+  var fb = gel('feedbackBox');
+  if (answered && ua) {
+    if (ua.skipped) { fb.className = 'feedback-box wrong-fb'; fb.textContent = '건너뛴 문제입니다. 정답: ' + correctArr.join(', '); }
+    else if (ua.correct) { fb.className = 'feedback-box correct-fb'; fb.textContent = '✓ 정답입니다!'; }
+    else { fb.className = 'feedback-box wrong-fb'; fb.textContent = '✗ 오답입니다. 정답: ' + correctArr.join(', '); }
+  } else {
+    fb.className = 'feedback-box';
+    fb.textContent = '';
+  }
+
+  /* 해설 */
+  var eb = gel('explainBox');
+  if (answered && q.explanation) {
+    eb.className = 'explain-box show';
+    eb.innerHTML = '<div class="explain-title">해설</div>' + escapeHtml(q.explanation);
+  } else {
+    eb.className = 'explain-box';
+    eb.innerHTML = '';
+  }
+
+  /* 버튼 상태 */
+  gel('prevBtn').disabled = (currentIndex === 0);
+  if (answered) {
+    gel('submitBtn').style.display = 'none';
+    gel('nextBtn').style.display = 'inline-block';
+    gel('nextBtn').textContent = currentIndex < quizQuestions.length - 1 ? '다음 →' : '결과 보기 →';
+  } else {
+    gel('submitBtn').style.display = 'inline-block';
+    gel('submitBtn').disabled = (selectedChoices.length === 0);
+    gel('nextBtn').style.display = 'none';
+  }
+}
+
+function toggleChoice(idx, btn, isMulti) {
+  if (answered) return;
+  var labels = ['A','B','C','D','E','F'];
+  if (isMulti) {
+    var pos = selectedChoices.indexOf(labels[idx]);
+    if (pos === -1) { selectedChoices.push(labels[idx]); btn.classList.add('selected'); }
+    else { selectedChoices.splice(pos, 1); btn.classList.remove('selected'); }
+  } else {
+    var btns = document.querySelectorAll('.choice-btn');
+    for (var i = 0; i < btns.length; i++) btns[i].classList.remove('selected');
+    selectedChoices = [labels[idx]];
+    btn.classList.add('selected');
+  }
+  gel('submitBtn').disabled = (selectedChoices.length === 0);
+}
+
+function submitAnswer() {
+  if (!selectedChoices.length || answered) return;
+  answered = true;
+  var q = quizQuestions[currentIndex];
+  var correctArr = q.answer.split(',').sort();
+  var userArr = selectedChoices.slice().sort();
+  var isCorrect = (JSON.stringify(correctArr) === JSON.stringify(userArr));
+  userAnswers[currentIndex] = { selected: selectedChoices.slice(), correct: isCorrect };
+  renderQuestion();
+}
+
+function skipQuestion() {
+  if (answered) return;
+  userAnswers[currentIndex] = { selected: [], correct: false, skipped: true };
+  if (currentIndex < quizQuestions.length - 1) { currentIndex++; renderQuestion(); }
+  else showResult(false);
+}
+
+function prevQuestion() {
+  if (currentIndex > 0) { currentIndex--; renderQuestion(); }
+}
+
+function nextQuestion() {
+  if (currentIndex < quizQuestions.length - 1) { currentIndex++; renderQuestion(); }
+  else showResult(false);
+}
+
+function openModal(id) { gel(id).classList.add('open'); }
+function closeModal(id) { gel(id).classList.remove('open'); }
+function openHomeConfirm() { openModal('homeModal'); }
+function confirmGoHome() { closeModal('homeModal'); goHome(); }
+
+function openMidCheck() {
+  var answeredCnt = 0, correct = 0, skipped = 0;
+  for (var i = 0; i < userAnswers.length; i++) {
+    if (userAnswers[i] !== null) { answeredCnt++; if(userAnswers[i].correct) correct++; if(userAnswers[i].skipped) skipped++; }
+  }
+  var wrong = answeredCnt - correct - skipped;
+  gel('midSubText').textContent = '현재까지 ' + answeredCnt + '문제 풀었습니다. (남은: ' + (quizQuestions.length - answeredCnt) + '개)';
+  gel('midGrid').innerHTML =
+    '<div class="mid-stat"><div class="mid-stat-val green">'+correct+'</div><div class="mid-stat-lbl">정답</div></div>' +
+    '<div class="mid-stat"><div class="mid-stat-val red">'+wrong+'</div><div class="mid-stat-lbl">오답</div></div>' +
+    '<div class="mid-stat"><div class="mid-stat-val orange">'+skipped+'</div><div class="mid-stat-lbl">건너뜀</div></div>';
+  openModal('midModal');
+}
+
+function finishFromMid() { closeModal('midModal'); showResult(true); }
+
+function showResult(isMid) {
+  clearInterval(timerInterval);
+  isMidResult = isMid;
+  hide('quizScreen'); show('resultScreen');
+  var total = quizQuestions.length;
+  var answeredArr = [], correct = 0, skipped = 0;
+  for (var i = 0; i < userAnswers.length; i++) {
+    if (userAnswers[i] !== null) { answeredArr.push(userAnswers[i]); if(userAnswers[i].correct) correct++; if(userAnswers[i].skipped) skipped++; }
+  }
+  var wrong = answeredArr.length - correct - skipped;
+  var unanswered = total - answeredArr.length;
+  var base = answeredArr.length > 0 ? answeredArr.length : 1;
+  var pct = Math.round(correct / base * 100);
+  var m = Math.floor(totalSeconds/60); var s = totalSeconds%60;
+  var timeStr = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+
+  gel('resultPct').textContent = pct + '%';
+  gel('rCorrect').textContent = correct;
+  gel('rWrong').textContent = wrong;
+  gel('rSkipped').textContent = skipped + (unanswered > 0 ? '+' + unanswered : '');
+  gel('rTime').textContent = timeStr;
+
+  var grade, title;
+  if (pct>=90){grade='합격 ★★★';title='훌륭합니다! 실전 준비 완료 🎉';}
+  else if(pct>=75){grade='합격 ★★';title='잘 하셨습니다! 조금만 더 다듬어요 👍';}
+  else if(pct>=60){grade='보통 ★';title='아쉽네요. 오답 문제를 복습해보세요 📚';}
+  else{grade='불합격';title='더 공부가 필요합니다. 오답을 집중 복습하세요 💪';}
+  gel('resultGrade').textContent = grade;
+  gel('resultTitle').textContent = isMid ? '📊 중간 채점 결과' : title;
+  gel('resultSub').textContent = (isMid?'('+answeredArr.length+'/'+total+'문제 응답 기준) ':'')+total+'문제 중 '+correct+'개 정답 · '+m+'분 '+s+'초';
+
+  var circumference = 339.3;
+  var offset = circumference - (pct / 100 * circumference);
+  var ring = gel('ringFill');
+  ring.style.strokeDashoffset = circumference;
+  setTimeout(function() { ring.style.strokeDashoffset = offset; }, 50);
+
+  var answeredCount = 0;
+  for (var i = 0; i < userAnswers.length; i++) { if (userAnswers[i] !== null) answeredCount++; }
+  gel('btnContinue').style.display = (isMid && (total - answeredCount) > 0) ? 'inline-block' : 'none';
+
+  var wrongQs = [];
+  for (var i = 0; i < userAnswers.length; i++) {
+    if (userAnswers[i] && (!userAnswers[i].correct || userAnswers[i].skipped)) wrongQs.push({q:quizQuestions[i],a:userAnswers[i]});
+  }
+  var wl = gel('wrongList');
+  if (!wrongQs.length) {
+    wl.innerHTML = '<div style="text-align:center;color:var(--success);padding:20px;">🎉 모두 정답!</div>';
+  } else {
+    var html = '<div class="wrong-list-title">오답 목록 ('+wrongQs.length+'개)</div>';
+    for (var i = 0; i < wrongQs.length; i++) {
+      var q = wrongQs[i].q, a = wrongQs[i].a;
+      var text = q.text.length > 70 ? q.text.substring(0,70)+'...' : q.text;
+      var status = a.skipped ? '[건너뜀]' : '[오답: '+(a.selected.join(',')||'-')+' → 정답: '+q.answer+']';
+      html += '<div class="wrong-item"><span class="wrong-qnum">Q'+q.id+'</span><span class="wrong-qtext">'+
+        text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+
+        '<br><small style="color:var(--error)">'+status+'</small></span></div>';
+    }
+    wl.innerHTML = html;
+  }
+}
+
+function continueFromResult() {
+  if (!isMidResult) return;
+  var nextIdx = -1;
+  for (var i = 0; i < quizQuestions.length; i++) { if (userAnswers[i] === null) { nextIdx = i; break; } }
+  if (nextIdx === -1) nextIdx = currentIndex;
+  currentIndex = nextIdx;
+  hide('resultScreen'); show('quizScreen');
+  startTime = Date.now() - totalSeconds * 1000;
+  timerInterval = setInterval(updateTimer, 1000);
+  isMidResult = false;
+  renderQuestion();
+}
+
+function reviewWrong() {
+  var wrongQs = [];
+  for (var i = 0; i < userAnswers.length; i++) {
+    if (userAnswers[i] && (!userAnswers[i].correct || userAnswers[i].skipped)) wrongQs.push(quizQuestions[i]);
+  }
+  if (!wrongQs.length) { goHome(); return; }
+  quizQuestions = wrongQs; currentIndex = 0;
+  userAnswers = [];
+  for (var i = 0; i < quizQuestions.length; i++) userAnswers.push(null);
+  isMidResult = false; totalSeconds = 0; startTime = Date.now();
+  clearInterval(timerInterval); timerInterval = setInterval(updateTimer, 1000);
+  hide('resultScreen'); show('quizScreen');
+  renderQuestion();
+}
+
+function goHome() {
+  clearInterval(timerInterval);
+  totalSeconds = 0; isMidResult = false;
+  hide('resultScreen'); hide('quizScreen');
+  gel('rangeFrom').value=''; gel('rangeTo').value='';
+  gel('rangePreview').textContent='';
+  gel('customRangeRow').classList.remove('active');
+  gel('customCountInput').value='';
+  gel('customCountDisplay').innerHTML='직접<br>입력';
+  show('startScreen');
+}
+
+/* ── 초기화 ── */
+initQGrid();
+</script>
+</body>
+</html>
